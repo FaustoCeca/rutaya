@@ -117,6 +117,7 @@ export function StopsSheet({
 						<span className="font-medium text-gray-900 text-sm">Volver al punto de partida</span>
 						<input
 							type="checkbox"
+							name="volver-al-origen"
 							checked={roundtrip}
 							onChange={onToggleRoundtrip}
 							className="h-5 w-9 appearance-none rounded-full bg-gray-300 transition-colors before:m-0.5 before:block before:h-4 before:w-4 before:rounded-full before:bg-white before:shadow before:transition-transform checked:bg-emerald-600 checked:before:translate-x-4"

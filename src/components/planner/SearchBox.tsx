@@ -43,6 +43,7 @@ export function SearchBox({ getCenter, onSelect, onUseMyLocation }: SearchBoxPro
 			<div className="overflow-hidden rounded-2xl bg-white shadow-lg">
 				<input
 					type="search"
+					name="buscar-direccion"
 					value={text}
 					onChange={(e) => setText(e.target.value)}
 					onFocus={() => setFocused(true)}
