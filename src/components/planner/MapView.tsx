@@ -1,5 +1,6 @@
+import { latLngBounds } from "leaflet";
 import { useEffect } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Polyline, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { Stop } from "@/hooks/useStops";
 import { StopMarkers } from "./StopMarkers";
 
@@ -14,6 +15,7 @@ export interface MapFocusTarget {
 interface MapViewProps {
 	stops: Stop[];
 	order: number[] | undefined;
+	geometry: [number, number][] | undefined;
 	focus: MapFocusTarget | null;
 	onMapTap: (lat: number, lng: number) => void;
 	onCenterChange: (lat: number, lng: number) => void;
@@ -44,7 +46,21 @@ function MapFocus({ focus }: { focus: MapFocusTarget | null }) {
 	return null;
 }
 
-export function MapView({ stops, order, focus, onMapTap, onCenterChange }: MapViewProps) {
+function FitRoute({ geometry }: { geometry: [number, number][] | undefined }) {
+	const map = useMap();
+	useEffect(() => {
+		if (geometry && geometry.length > 1) {
+			// padding inferior extra para que el StopsSheet no tape la ruta
+			map.fitBounds(latLngBounds(geometry), {
+				paddingTopLeft: [40, 80],
+				paddingBottomRight: [40, 180],
+			});
+		}
+	}, [geometry, map]);
+	return null;
+}
+
+export function MapView({ stops, order, geometry, focus, onMapTap, onCenterChange }: MapViewProps) {
 	return (
 		<div className="absolute inset-0 z-0">
 			<MapContainer center={BUENOS_AIRES} zoom={13} zoomControl={false} className="h-full w-full">
@@ -55,6 +71,13 @@ export function MapView({ stops, order, focus, onMapTap, onCenterChange }: MapVi
 				<TapHandler onTap={onMapTap} />
 				<CenterTracker onMove={onCenterChange} />
 				<MapFocus focus={focus} />
+				<FitRoute geometry={geometry} />
+				{geometry && (
+					<Polyline
+						positions={geometry}
+						pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }}
+					/>
+				)}
 				<StopMarkers stops={stops} order={order} />
 			</MapContainer>
 		</div>
