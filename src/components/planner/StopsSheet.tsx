@@ -13,6 +13,8 @@ interface StopsSheetProps {
 	order: number[] | undefined;
 	isFetching: boolean;
 	isError: boolean;
+	googleMapsUrl: string | undefined;
+	onShare: () => void;
 	onRetry: () => void;
 	onToggleRoundtrip: () => void;
 	onRemove: (id: string) => void;
@@ -26,6 +28,8 @@ export function StopsSheet({
 	order,
 	isFetching,
 	isError,
+	googleMapsUrl,
+	onShare,
 	onRetry,
 	onToggleRoundtrip,
 	onRemove,
@@ -57,6 +61,34 @@ export function StopsSheet({
 				isError={isError}
 				onRetry={onRetry}
 			/>
+			<div className="flex gap-2 px-4 pb-3">
+				<button
+					type="button"
+					onClick={onShare}
+					disabled={!order}
+					className="flex-1 rounded-full bg-emerald-600 py-2.5 font-semibold text-sm text-white disabled:opacity-40"
+				>
+					Compartir
+				</button>
+				{googleMapsUrl ? (
+					<a
+						href={googleMapsUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex-1 rounded-full bg-gray-900 py-2.5 text-center font-semibold text-sm text-white"
+					>
+						Abrir en Google Maps
+					</a>
+				) : (
+					<button
+						type="button"
+						disabled
+						className="flex-1 rounded-full bg-gray-900 py-2.5 font-semibold text-sm text-white opacity-40"
+					>
+						Abrir en Google Maps
+					</button>
+				)}
+			</div>
 			{expanded && stops.length > 0 && (
 				<div className="border-gray-100 border-t">
 					<ul className="max-h-[45dvh] overflow-y-auto py-1">
