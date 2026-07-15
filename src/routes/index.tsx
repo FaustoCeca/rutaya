@@ -1,5 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { InstallHint } from "@/components/planner/InstallHint";
 import { BUENOS_AIRES, type MapFocusTarget, MapView } from "@/components/planner/MapView";
 import { SearchBox } from "@/components/planner/SearchBox";
 import { StopsSheet } from "@/components/planner/StopsSheet";
@@ -144,6 +145,7 @@ function PlannerPage() {
 				onMakeOrigin={(id) => dispatch({ type: "makeOrigin", id })}
 			/>
 			<Toast message={toast} onDismiss={() => setToast(null)} />
+			<InstallHint />
 		</main>
 	);
 }
