@@ -43,13 +43,11 @@ export function StopListItem({
 				<button
 					type="button"
 					onClick={onMakeOrigin}
-					aria-label={`Fijar ${stop.label} como origen`}
-					title="Fijar como origen"
-					className="shrink-0 rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-emerald-600"
+					aria-label={`Empezar la ruta desde ${stop.label}`}
+					title="Usar esta parada como punto de partida"
+					className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 px-2.5 py-1 text-gray-600 text-xs hover:border-emerald-600 hover:text-emerald-700"
 				>
-					<svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-						<path d="M6 3a1 1 0 0 1 1 1v1h11l-2.5 4L18 13H7v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z" />
-					</svg>
+					Empezar acá
 				</button>
 			)}
 			<button
