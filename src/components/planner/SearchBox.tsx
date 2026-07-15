@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type GeocodeResult, searchAddresses } from "@/lib/geocoding";
 
 interface SearchBoxProps {
@@ -18,6 +18,7 @@ function useDebounced(value: string, delayMs: number): string {
 }
 
 export function SearchBox({ getCenter, onSelect, onUseMyLocation }: SearchBoxProps) {
+	const inputRef = useRef<HTMLInputElement>(null);
 	const [text, setText] = useState("");
 	const [focused, setFocused] = useState(false);
 	const query = useDebounced(text.trim(), 300);
@@ -32,22 +33,44 @@ export function SearchBox({ getCenter, onSelect, onUseMyLocation }: SearchBoxPro
 	const showResults = focused && text.trim().length >= 3;
 	const showMyLocation = focused && text.length === 0;
 
+	function close() {
+		setFocused(false);
+		// mantener el estado de foco sincronizado con el DOM: si el input quedara
+		// enfocado, el próximo tipeo no reabriría el dropdown (onFocus no vuelve a disparar)
+		inputRef.current?.blur();
+	}
+
 	function handleSelect(result: GeocodeResult) {
 		onSelect(result);
 		setText("");
-		setFocused(false);
+		close();
+	}
+
+	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			// solo si los resultados corresponden a lo tipeado (debounce ya asentado)
+			if (query === text.trim() && data?.[0]) handleSelect(data[0]);
+		} else if (e.key === "Escape") {
+			close();
+		}
 	}
 
 	return (
 		<div className="absolute inset-x-3 top-3 z-[1100]">
 			<div className="overflow-hidden rounded-2xl bg-white shadow-lg">
 				<input
+					ref={inputRef}
 					type="search"
 					name="buscar-direccion"
 					value={text}
-					onChange={(e) => setText(e.target.value)}
+					onChange={(e) => {
+						setText(e.target.value);
+						setFocused(true);
+					}}
 					onFocus={() => setFocused(true)}
 					onBlur={() => setFocused(false)}
+					onKeyDown={handleKeyDown}
 					placeholder="Buscar dirección…"
 					autoComplete="off"
 					className="w-full bg-transparent px-4 py-3 text-base outline-none"
@@ -59,7 +82,7 @@ export function SearchBox({ getCenter, onSelect, onUseMyLocation }: SearchBoxPro
 							<button
 								type="button"
 								onClick={() => {
-									setFocused(false);
+									close();
 									onUseMyLocation();
 								}}
 								className="flex w-full items-center gap-2 px-4 py-3 text-left font-medium text-emerald-700 text-sm"
