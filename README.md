@@ -1,78 +1,34 @@
-# Front Template
+# RutaYa 🛵
 
-React 19 starter template with TypeScript, TanStack Router, TanStack Query, Tailwind CSS 4, and Vite 7.
+Optimizador de rutas de entrega para repartidores. Cargás las paradas en un mapa (buscando la dirección o tocando el mapa), la app calcula el **orden óptimo de visita** para minimizar el tiempo, y compartís la ruta por WhatsApp con un link que cualquiera puede abrir sin instalar nada.
 
-## Prerequisites
+## Funcionalidades
 
-- [Bun](https://bun.sh/) (v1.x or later)
-- [Node.js](https://nodejs.org/) (v20+ recommended)
+- 🗺️ Mapa a pantalla completa (mobile-first) con paradas numeradas en orden óptimo
+- 🔍 Buscador de direcciones con autocomplete (sesgado a Argentina) + "Usar mi ubicación"
+- ⚡ Optimización automática del orden en cada cambio (sin apretar nada)
+- 🔁 Toggle "Volver al punto de partida" para circuitos de ida y vuelta
+- 🔗 Link compartible: las paradas viajan comprimidas en la URL, sin backend
+- 🧭 "Abrir en Google Maps" con las paradas ya ordenadas, para navegar
 
-## Getting Started
+## Stack
+
+- React 19 + TypeScript + Vite 7, con [Bun](https://bun.sh) como runtime
+- TanStack Router + TanStack Query, Tailwind CSS 4, Biome
+- Leaflet + tiles de OpenStreetMap
+- APIs públicas gratuitas: [OSRM](https://project-osrm.org) (optimización), [Photon](https://photon.komoot.io) (autocomplete), [Nominatim](https://nominatim.org) (reverse geocoding)
+
+> ⚠️ Las APIs públicas son de **uso justo**: sobradas para un repartidor o un equipo chico. Si se escala a muchos usuarios, conviene self-hostear OSRM o pasar a un proveedor pago.
+
+## Desarrollo
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd front-template
-
-# Install dependencies
 bun install
-
-# Start the development server
-bun dev
+bun dev        # http://localhost:5173
+bun run lint   # Biome
+bun run build  # tsc + vite build → dist/
 ```
 
-The app will be available at `http://localhost:5173`.
+## Deploy
 
-## Scripts
-
-| Command        | Description                          |
-|----------------|--------------------------------------|
-| `bun dev`      | Start the Vite dev server            |
-| `bun run build`| Type-check with TSC and build for production |
-| `bun run preview` | Preview the production build locally |
-| `bun run lint` | Lint source files with Biome         |
-| `bun run format`| Format source files with Biome      |
-
-## Tech Stack
-
-- **React 19** with React Compiler
-- **TypeScript 5.9**
-- **Vite 7** as build tool
-- **TanStack Router** for file-based routing
-- **TanStack Query** for server state management
-- **Tailwind CSS 4** for styling
-- **Biome** for linting and formatting
-
-## Project Structure
-
-```
-src/
-├── main.tsx          # App entry point
-├── index.css         # Global styles / Tailwind imports
-├── router.ts         # TanStack Router configuration
-├── routes/
-│   ├── __root.tsx    # Root layout route
-│   ├── index.tsx     # Home page (/)
-│   └── about.tsx     # About page (/about)
-└── vite-env.d.ts     # Vite type declarations
-```
-
-## Path Aliases
-
-The `@` alias is configured to point to `src/`, so you can import like:
-
-```ts
-import { something } from "@/routes/index";
-```
-
-## Building for Production
-
-```bash
-bun run build
-```
-
-Output will be in the `dist/` directory. Serve it with:
-
-```bash
-bun run preview
-```
+App 100% estática (no hay variables de entorno ni backend). En Vercel se importa el repo y listo: detecta Vite y usa `bun run build` automáticamente.

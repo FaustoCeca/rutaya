@@ -58,7 +58,7 @@ function PlannerPage() {
 		const url = buildShareUrl(state);
 		if (navigator.share) {
 			try {
-				await navigator.share({ title: "Ruta de entregas", url });
+				await navigator.share({ title: "RutaYa — Ruta de entregas", url });
 			} catch {
 				// el usuario cerró el share sheet
 			}
