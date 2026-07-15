@@ -1,46 +1,70 @@
-# Repository Guidelines & Multi-Agent Configuration
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Multi-Agent System
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-This repository uses a multi-model agent system for optimized AI-assisted development. Choose the right agent for your task:
+## 1. Think Before Coding
 
-### Available Agents
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-| Agent | Model | Use Case | Speed | Cost |
-|-------|-------|----------|-------|------|
-| **React Slave** | Claude 3.5 Haiku | Small fixes, quick tasks | ⚡⚡⚡ | 💰 |
-| **Architect** | Claude 3.5 Sonnet | Features, routing, implementation | 🚀🚀 | 💰💰 |
-| **Full Stack Master** | Claude 3.5 Sonnet | Architecture, system design | 🚀🚀 | 💰💰 |
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-### Agent Selection
+## 2. Simplicity First
 
-**React Slave** - For small tasks:
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
 ```
-"Fix the button padding in the header"
-"Create a useLocalStorage hook"
-"Add error boundary to LoginForm"
-"Write a test for handleSubmit"
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-**Architect** - For features and implementation:
-```
-"Implement user dashboard page with data fetching"
-"Create /settings route with form validation"
-"Integrate API service for authentication"
-"Refactor these 3 components for better composition"
-```
-
-**Full Stack Master** - For architecture and design:
-```
-"Design the authentication system architecture"
-"Plan the refactor for monorepo structure"
-"Optimize the data fetching strategy"
-"Design error handling and recovery flow"
-```
-
-See [MULTI_AGENT.md](MULTI_AGENT.md) for detailed guide.
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+# Repository Guidelines
 
 ## Available Skills
 
@@ -58,6 +82,29 @@ Use these skills for detailed patterns on-demand:
 | `frontend-design` | Production-grade UI design, bold aesthetics, typography | [SKILL.md](skills/frontend-design/SKILL.md) |
 | `tanstack-query` | Query keys, caching, mutations, SSR integration | [SKILL.md](skills/tanstack-query/SKILL.md) |
 | `tanstack-router` | Type-safe routing, data loading, search params | [SKILL.md](skills/tanstack-router/SKILL.md) |
+
+---
+
+## TypeScript Conventions
+
+**No single-property interfaces or types.** Never create a named `interface` or `type` alias that wraps a single property. Use the inline literal directly instead.
+
+```ts
+// WRONG
+export interface AddAudiencePlayersInput { playerIds: string[] }
+function foo(input: AddAudiencePlayersInput) { ... }
+
+// CORRECT
+function foo(input: { playerIds: string[] }) { ... }
+```
+
+When a call site needs the type, derive it with `Parameters<typeof fn>[n]` rather than re-declaring it.
+
+---
+
+## Component Size Limit
+
+**No React file may exceed 200 lines.** If a component grows past that, split it: extract sub-components into their own files (same feature folder). The orchestrating parent imports them and handles only coordination — no rendering logic inline.
 
 ---
 
