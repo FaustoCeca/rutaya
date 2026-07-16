@@ -16,7 +16,7 @@ Optimizador de rutas de entrega para repartidores. Cargás las paradas en un map
 - React 19 + TypeScript + Vite 7, con [Bun](https://bun.sh) como runtime
 - TanStack Router + TanStack Query, Tailwind CSS 4, Biome
 - Leaflet + tiles de OpenStreetMap
-- APIs públicas gratuitas: [OSRM](https://project-osrm.org) (optimización), [Photon](https://photon.komoot.io) (autocomplete), [Nominatim](https://nominatim.org) (reverse geocoding)
+- APIs públicas gratuitas: [OSRM](https://project-osrm.org) (optimización), [Photon](https://photon.komoot.io) (autocomplete), [Georef](https://datosgobar.github.io/georef-ar-api/) (direcciones oficiales argentinas con altura), [Nominatim](https://nominatim.org) (reverse geocoding)
 
 > ⚠️ Las APIs públicas son de **uso justo**: sobradas para un repartidor o un equipo chico. Si se escala a muchos usuarios, conviene self-hostear OSRM o pasar a un proveedor pago.
 

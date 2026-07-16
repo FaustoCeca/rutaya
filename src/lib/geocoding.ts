@@ -19,7 +19,7 @@ interface PhotonFeature {
 	};
 }
 
-export async function searchAddresses(
+async function searchPhoton(
 	query: string,
 	center: { lat: number; lng: number },
 ): Promise<GeocodeResult[]> {
@@ -46,6 +46,91 @@ export async function searchAddresses(
 				lng: f.geometry.coordinates[0],
 			};
 		});
+}
+
+// Georef: API oficial argentina (datos.gob.ar). Resuelve calle + altura contra la
+// cartografía de INDEC/IGN, que cubre números de puerta que faltan en OSM.
+interface GeorefDireccion {
+	calle: { nombre: string };
+	altura: { valor: number | null };
+	localidad_censal: { nombre: string | null };
+	provincia: { nombre: string | null };
+	ubicacion: { lat: number | null; lon: number | null } | null;
+}
+
+const LOWERCASE_WORDS = new Set(["de", "del", "la", "las", "los", "y", "e", "al"]);
+
+function titleCase(text: string): string {
+	return text
+		.toLowerCase()
+		.split(" ")
+		.filter(Boolean)
+		.map((w, i) => (i > 0 && LOWERCASE_WORDS.has(w) ? w : w[0].toUpperCase() + w.slice(1)))
+		.join(" ");
+}
+
+async function searchGeoref(
+	query: string,
+	center: { lat: number; lng: number },
+): Promise<GeocodeResult[]> {
+	const url = new URL("https://apis.datos.gob.ar/georef/api/direcciones");
+	url.searchParams.set("direccion", query);
+	url.searchParams.set("max", "10");
+	const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+	if (!res.ok) throw new Error("No se pudo buscar");
+	const data: { direcciones?: GeorefDireccion[] } = await res.json();
+	const located = (data.direcciones ?? []).flatMap((d) => {
+		const lat = d.ubicacion?.lat;
+		const lng = d.ubicacion?.lon;
+		if (lat == null || lng == null) return [];
+		return [{ d, lat, lng }];
+	});
+	// Georef no tiene sesgo por cercanía: devuelve matches de todo el país,
+	// así que ordenamos por distancia al centro del mapa
+	const dist2 = (r: { lat: number; lng: number }) =>
+		(r.lat - center.lat) ** 2 + (r.lng - center.lng) ** 2;
+	located.sort((a, b) => dist2(a) - dist2(b));
+	return located.slice(0, 4).map(({ d, lat, lng }) => {
+		const street = titleCase(d.calle.nombre);
+		const altura = d.altura?.valor != null ? ` ${d.altura.valor}` : "";
+		const area = d.localidad_censal?.nombre ?? d.provincia?.nombre;
+		return {
+			label: area ? `${street}${altura}, ${area}` : `${street}${altura}`,
+			lat,
+			lng,
+		};
+	});
+}
+
+// dos resultados a <~100 m son la misma dirección vista por dos fuentes distintas
+function dedupeByProximity(results: GeocodeResult[]): GeocodeResult[] {
+	const kept: GeocodeResult[] = [];
+	for (const r of results) {
+		const isDup = kept.some(
+			(k) => Math.abs(k.lat - r.lat) < 1e-3 && Math.abs(k.lng - r.lng) < 1e-3,
+		);
+		if (!isDup) kept.push(r);
+	}
+	return kept;
+}
+
+export async function searchAddresses(
+	query: string,
+	center: { lat: number; lng: number },
+): Promise<GeocodeResult[]> {
+	// Georef solo sirve para "calle + altura"; sin número (POIs, calles) alcanza Photon
+	const hasNumber = /\d/.test(query);
+	const [photon, georef] = await Promise.allSettled([
+		searchPhoton(query, center),
+		hasNumber ? searchGeoref(query, center) : Promise.resolve<GeocodeResult[]>([]),
+	]);
+	const photonOk = photon.status === "fulfilled";
+	const georefOk = georef.status === "fulfilled";
+	// error solo si fallaron todas las fuentes consultadas
+	if (!photonOk && (!hasNumber || !georefOk)) throw new Error("No se pudo buscar");
+	// Georef primero: si el usuario tipeó una altura, es el match oficial preciso
+	const merged = [...(georefOk ? georef.value : []), ...(photonOk ? photon.value : [])];
+	return dedupeByProximity(merged).slice(0, 6);
 }
 
 interface NominatimReverse {
