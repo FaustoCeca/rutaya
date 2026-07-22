@@ -46,15 +46,33 @@ export function StopsSheet(props: StopsSheetProps) {
 
 	return (
 		<section className="absolute inset-x-0 bottom-0 z-[1100] rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
-			<button
-				type="button"
-				onClick={() => setExpanded((e) => !e)}
-				aria-expanded={expanded}
-				aria-label={expanded ? "Colapsar panel" : "Expandir panel"}
-				className="flex w-full justify-center pt-2 pb-2"
-			>
-				<span className="h-1 w-10 rounded-full bg-gray-300" />
-			</button>
+			{hasExpandedContent ? (
+				<button
+					type="button"
+					onClick={() => setExpanded((e) => !e)}
+					aria-expanded={expanded}
+					aria-label={expanded ? "Colapsar panel" : "Expandir panel"}
+					className="flex w-full items-center justify-center gap-1 pt-2.5 pb-1.5 text-gray-500"
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+						aria-hidden="true"
+					>
+						<path d="m6 15 6-6 6 6" />
+					</svg>
+					<span className="font-medium text-xs">
+						{expanded ? "Ocultar" : stops.length > 0 ? "Ver paradas" : "Ver viajes anteriores"}
+					</span>
+				</button>
+			) : (
+				<div className="pt-3" />
+			)}
 			{locked && (
 				<p className="px-4 pb-1">
 					<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 font-medium text-emerald-700 text-xs">
