@@ -1,24 +1,8 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { detectMobilePlatform, isStandalone, type MobilePlatform } from "@/lib/platform";
+import { markSeen, wasSeen } from "@/lib/seenFlags";
 
 const STORAGE_KEY = "rutaya-install-hint-seen";
-
-function wasSeen(): boolean {
-	try {
-		return localStorage.getItem(STORAGE_KEY) === "1";
-	} catch {
-		// sin storage no podemos recordar el cierre: mejor no molestar en cada visita
-		return true;
-	}
-}
-
-function markSeen() {
-	try {
-		localStorage.setItem(STORAGE_KEY, "1");
-	} catch {
-		// ignorar
-	}
-}
 
 function ShareIcon() {
 	return (
@@ -69,7 +53,7 @@ export function InstallHint() {
 
 	useEffect(() => {
 		const detected = detectMobilePlatform();
-		if (!detected || isStandalone() || wasSeen()) return;
+		if (!detected || isStandalone() || wasSeen(STORAGE_KEY)) return;
 		// pequeña espera para que primero se vea el mapa (o la ruta compartida)
 		const timer = setTimeout(() => setPlatform(detected), 1200);
 		return () => clearTimeout(timer);
@@ -78,7 +62,7 @@ export function InstallHint() {
 	if (!platform) return null;
 
 	function dismiss() {
-		markSeen();
+		markSeen(STORAGE_KEY);
 		setPlatform(null);
 	}
 

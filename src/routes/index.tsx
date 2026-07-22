@@ -1,7 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/planner/ConfirmDialog";
-import { InstallHint } from "@/components/planner/InstallHint";
+import { FirstVisitHints } from "@/components/planner/FirstVisitHints";
 import { BUENOS_AIRES, type MapFocusTarget, MapView } from "@/components/planner/MapView";
 import { SearchBox } from "@/components/planner/SearchBox";
 import { StopsSheet } from "@/components/planner/StopsSheet";
@@ -161,7 +161,7 @@ function PlannerPage() {
 					onCancel={lifecycle.cancelConfirm}
 				/>
 			)}
-			<InstallHint />
+			<FirstVisitHints showWelcome={mode === "edit" && !r} />
 		</main>
 	);
 }
