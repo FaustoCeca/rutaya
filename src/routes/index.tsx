@@ -1,16 +1,18 @@
 import { createRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/planner/ConfirmDialog";
 import { InstallHint } from "@/components/planner/InstallHint";
 import { BUENOS_AIRES, type MapFocusTarget, MapView } from "@/components/planner/MapView";
 import { SearchBox } from "@/components/planner/SearchBox";
 import { StopsSheet } from "@/components/planner/StopsSheet";
 import { Toast } from "@/components/planner/Toast";
-import { isNearDuplicate, type RouteState, useStops } from "@/hooks/useStops";
+import { isNearDuplicate } from "@/hooks/useStops";
 import { useTrip } from "@/hooks/useTrip";
+import { useTripLifecycle } from "@/hooks/useTripLifecycle";
 import { type GeocodeResult, reverseGeocode } from "@/lib/geocoding";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { buildGoogleMapsUrl } from "@/lib/googleMaps";
-import { buildShareUrl, decodeRouteState } from "@/lib/share";
+import { buildShareUrl } from "@/lib/share";
 import { rootRoute } from "./__root";
 
 export const indexRoute = createRoute({
@@ -22,19 +24,12 @@ export const indexRoute = createRoute({
 	}),
 });
 
-function initialStateFromUrl(r: string | undefined): { state: RouteState; invalid: boolean } {
-	const empty: RouteState = { stops: [], roundtrip: false };
-	if (!r) return { state: empty, invalid: false };
-	const decoded = decodeRouteState(r);
-	return decoded ? { state: decoded, invalid: false } : { state: empty, invalid: true };
-}
-
 function PlannerPage() {
 	const { r } = indexRoute.useSearch();
-	const [initial] = useState(() => initialStateFromUrl(r));
-	const { state, dispatch } = useStops(initial.state);
+	const lifecycle = useTripLifecycle(r);
+	const { state, dispatch, mode, isPreview, history, confirm } = lifecycle;
 	const [toast, setToast] = useState<string | null>(
-		initial.invalid ? "El enlace no es válido" : null,
+		lifecycle.invalidLink ? "El enlace no es válido" : null,
 	);
 	const [focus, setFocus] = useState<MapFocusTarget | null>(null);
 	const centerRef = useRef({ lat: BUENOS_AIRES[0], lng: BUENOS_AIRES[1] });
@@ -55,25 +50,11 @@ function PlannerPage() {
 		? buildGoogleMapsUrl(orderedStops, state.roundtrip)
 		: undefined;
 
-	async function handleShare() {
-		const url = buildShareUrl(state);
-		if (navigator.share) {
-			try {
-				await navigator.share({ title: "RutaYa — Ruta de entregas", url });
-			} catch {
-				// el usuario cerró el share sheet
-			}
-			return;
-		}
-		try {
-			await navigator.clipboard.writeText(url);
-			setToast("Enlace copiado");
-		} catch {
-			setToast("No se pudo copiar el enlace");
-		}
-	}
-
 	function addStop(lat: number, lng: number, label?: string, asOrigin = false): boolean {
+		if (mode === "trip") {
+			setToast("El viaje está confirmado y no se puede modificar");
+			return false;
+		}
 		if (isNearDuplicate(state.stops, lat, lng)) {
 			setToast("Esa parada ya está en la lista");
 			return false;
@@ -113,6 +94,24 @@ function PlannerPage() {
 		}
 	}
 
+	async function handleShare() {
+		const url = buildShareUrl(state);
+		if (navigator.share) {
+			try {
+				await navigator.share({ title: "RutaYa — Ruta de entregas", url });
+			} catch {
+				// el usuario cerró el share sheet
+			}
+			return;
+		}
+		try {
+			await navigator.clipboard.writeText(url);
+			setToast("Enlace copiado");
+		} catch {
+			setToast("No se pudo copiar el enlace");
+		}
+	}
+
 	return (
 		<main className="relative h-full w-full">
 			<MapView
@@ -125,12 +124,16 @@ function PlannerPage() {
 					centerRef.current = { lat, lng };
 				}}
 			/>
-			<SearchBox
-				getCenter={() => centerRef.current}
-				onSelect={handleSearchSelect}
-				onUseMyLocation={handleUseMyLocation}
-			/>
+			{mode === "edit" && (
+				<SearchBox
+					getCenter={() => centerRef.current}
+					onSelect={handleSearchSelect}
+					onUseMyLocation={() => void handleUseMyLocation()}
+				/>
+			)}
 			<StopsSheet
+				mode={mode}
+				isPreview={isPreview}
 				stops={state.stops}
 				roundtrip={state.roundtrip}
 				trip={trip}
@@ -138,13 +141,26 @@ function PlannerPage() {
 				isFetching={tripQuery.isFetching}
 				isError={tripQuery.isError}
 				googleMapsUrl={googleMapsUrl}
+				history={history}
 				onShare={() => void handleShare()}
 				onRetry={() => void tripQuery.refetch()}
 				onToggleRoundtrip={() => dispatch({ type: "toggleRoundtrip" })}
 				onRemove={(id) => dispatch({ type: "remove", id })}
 				onMakeOrigin={(id) => dispatch({ type: "makeOrigin", id })}
+				onCreateTrip={lifecycle.createTrip}
+				onSaveTrip={lifecycle.saveTrip}
+				onEndTrip={lifecycle.endTrip}
+				onLoadHistory={lifecycle.loadFromHistory}
 			/>
 			<Toast message={toast} onDismiss={() => setToast(null)} />
+			{confirm && (
+				<ConfirmDialog
+					message={confirm.message}
+					confirmLabel={confirm.confirmLabel}
+					onConfirm={confirm.action}
+					onCancel={lifecycle.cancelConfirm}
+				/>
+			)}
 			<InstallHint />
 		</main>
 	);

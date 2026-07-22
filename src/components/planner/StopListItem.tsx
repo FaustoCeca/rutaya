@@ -8,6 +8,8 @@ interface StopListItemProps {
 	isOrigin: boolean;
 	// tramo que llega a esta parada desde la anterior (undefined para el origen)
 	leg: TripLeg | undefined;
+	// viaje confirmado: la fila se muestra sin acciones
+	readonly: boolean;
 	onRemove: () => void;
 	onMakeOrigin: () => void;
 }
@@ -17,6 +19,7 @@ export function StopListItem({
 	visitNumber,
 	isOrigin,
 	leg,
+	readonly,
 	onRemove,
 	onMakeOrigin,
 }: StopListItemProps) {
@@ -39,7 +42,7 @@ export function StopListItem({
 					)
 				)}
 			</div>
-			{!isOrigin && (
+			{!readonly && !isOrigin && (
 				<button
 					type="button"
 					onClick={onMakeOrigin}
@@ -50,17 +53,19 @@ export function StopListItem({
 					Empezar acá
 				</button>
 			)}
-			<button
-				type="button"
-				onClick={onRemove}
-				aria-label={`Eliminar ${stop.label}`}
-				title="Eliminar"
-				className="shrink-0 rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600"
-			>
-				<svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-					<path d="M9 3a1 1 0 0 0-1 1v1H4.5a1 1 0 1 0 0 2h15a1 1 0 1 0 0-2H16V4a1 1 0 0 0-1-1H9zM6.5 9l.9 11.1A2 2 0 0 0 9.39 22h5.22a2 2 0 0 0 1.99-1.9L17.5 9h-11z" />
-				</svg>
-			</button>
+			{!readonly && (
+				<button
+					type="button"
+					onClick={onRemove}
+					aria-label={`Eliminar ${stop.label}`}
+					title="Eliminar"
+					className="shrink-0 rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+				>
+					<svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+						<path d="M9 3a1 1 0 0 0-1 1v1H4.5a1 1 0 1 0 0 2h15a1 1 0 1 0 0-2H16V4a1 1 0 0 0-1-1H9zM6.5 9l.9 11.1A2 2 0 0 0 9.39 22h5.22a2 2 0 0 0 1.99-1.9L17.5 9h-11z" />
+					</svg>
+				</button>
+			)}
 		</li>
 	);
 }

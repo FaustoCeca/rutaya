@@ -10,6 +10,8 @@ Optimizador de rutas de entrega para repartidores. Cargás las paradas en un map
 - 🔁 Toggle "Volver al punto de partida" para circuitos de ida y vuelta
 - 🔗 Link compartible: las paradas viajan comprimidas en la URL, sin backend
 - 🧭 "Abrir en Google Maps" con las paradas ya ordenadas, para navegar
+- 🔒 Viajes confirmados: al tocar "Crear viaje" queda bloqueado (nada lo modifica) y guardado en el dispositivo hasta "Terminar viaje"
+- 🕘 Historial de los últimos 5 viajes para reabrirlos con un toque
 
 ## Stack
 

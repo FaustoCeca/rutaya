@@ -17,7 +17,9 @@ export type StopsAction =
 	| { type: "remove"; id: string }
 	| { type: "makeOrigin"; id: string }
 	| { type: "relabel"; id: string; label: string }
-	| { type: "toggleRoundtrip" };
+	| { type: "toggleRoundtrip" }
+	| { type: "reset" }
+	| { type: "hydrate"; state: RouteState };
 
 // ~1e-4 grados ≈ 11 m: dos paradas más cerca que eso se consideran la misma dirección
 const DUPLICATE_THRESHOLD_DEG = 1e-4;
@@ -40,6 +42,10 @@ function stopsReducer(state: RouteState, action: StopsAction): RouteState {
 			};
 		case "toggleRoundtrip":
 			return { ...state, roundtrip: !state.roundtrip };
+		case "reset":
+			return { stops: [], roundtrip: false };
+		case "hydrate":
+			return action.state;
 	}
 }
 
