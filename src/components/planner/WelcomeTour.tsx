@@ -6,6 +6,11 @@ const STEPS = [
 		detail: "Buscá cada dirección o tocá el mapa. El mejor orden de entrega se calcula solo.",
 	},
 	{
+		title: "Importá tu Excel o PDF",
+		detail:
+			"Si ya tenés la lista de entregas en una planilla o PDF, subila y las direcciones se cargan solas. Solo revisá y confirmá.",
+	},
+	{
 		title: 'Tocá "Crear viaje"',
 		detail: "El viaje queda fijo y guardado en tu celular: ningún toque lo puede cambiar.",
 	},
@@ -29,7 +34,7 @@ export function WelcomeTour({ onDone }: { onDone: () => void }) {
 			<div className="absolute inset-0 bg-gray-900/50" />
 			<section className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl">
 				<h2 className="font-bold text-gray-900 text-lg">¡Bienvenido a RutaYa! 👋</h2>
-				<p className="mt-1 text-gray-600 text-sm">Armá tu recorrido de entregas en 3 pasos:</p>
+				<p className="mt-1 text-gray-600 text-sm">Armá tu recorrido de entregas en 4 pasos:</p>
 				<ol className="mt-4 space-y-3">
 					{STEPS.map((step, i) => (
 						<li key={step.title} className="flex items-start gap-3">
