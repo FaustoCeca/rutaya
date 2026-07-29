@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 const MAX_TEXT_CHARS = 30_000;
+// 2 MB de archivo → ~2,8M chars en base64 (el límite de body de Vercel es 4,5 MB)
+const MAX_PDF_CHARS = 3_000_000;
 const MAX_STOPS = 50;
 
 // límite laxo por instancia: amortigua abuso del endpoint público sin
@@ -17,8 +19,8 @@ function rateLimited(): boolean {
 	return false;
 }
 
-const SYSTEM = `Sos un asistente que extrae direcciones de entrega de planillas de cálculo de Argentina.
-Recibís el contenido crudo (CSV) de una planilla sin estructura fija: las columnas pueden estar en cualquier orden, con o sin encabezados, y mezcladas con otros datos (nombres, teléfonos, montos, notas).
+const SYSTEM = `Sos un asistente que extrae direcciones de entrega de documentos de Argentina.
+Recibís el contenido de una planilla de cálculo (texto CSV) o un documento PDF (lista de pedidos, remito, hoja de ruta) sin estructura fija: los datos pueden estar en cualquier orden, con o sin encabezados, y mezclados con otra información (nombres, teléfonos, montos, notas).
 
 Tu tarea: detectar cada dirección de entrega y devolver la lista en el mismo orden en que aparece.
 
@@ -62,9 +64,20 @@ export async function runExtraction(reqBody: unknown): Promise<ExtractionResult>
 	if (rateLimited()) {
 		return { status: 429, body: { error: "Demasiadas importaciones seguidas. Esperá un minuto." } };
 	}
-	const text = (reqBody as { text?: unknown } | null)?.text;
-	if (typeof text !== "string" || !text.trim() || text.length > MAX_TEXT_CHARS) {
-		return { status: 400, body: { error: "La planilla no se pudo leer" } };
+	const { text, pdf } = (reqBody ?? {}) as { text?: unknown; pdf?: unknown };
+	let content: Anthropic.MessageParam["content"];
+	if (typeof pdf === "string" && pdf.length > 0 && pdf.length <= MAX_PDF_CHARS) {
+		content = [
+			{
+				type: "document",
+				source: { type: "base64", media_type: "application/pdf", data: pdf },
+			},
+			{ type: "text", text: "Extraé las direcciones de entrega de este documento." },
+		];
+	} else if (typeof text === "string" && text.trim() && text.length <= MAX_TEXT_CHARS) {
+		content = text;
+	} else {
+		return { status: 400, body: { error: "El archivo no se pudo leer" } };
 	}
 
 	const client = new Anthropic({ apiKey });
@@ -74,7 +87,7 @@ export async function runExtraction(reqBody: unknown): Promise<ExtractionResult>
 			max_tokens: 16000,
 			system: SYSTEM,
 			output_config: { format: { type: "json_schema", schema: SCHEMA } },
-			messages: [{ role: "user", content: text }],
+			messages: [{ role: "user", content }],
 		});
 		const block = response.content.find((b) => b.type === "text");
 		if (response.stop_reason !== "end_turn" || !block) {

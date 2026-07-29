@@ -1,4 +1,4 @@
-import { useExcelImport } from "@/hooks/useExcelImport";
+import { useFileImport } from "@/hooks/useFileImport";
 import { ImportReview } from "./ImportReview";
 
 interface ImportFlowProps {
@@ -10,7 +10,7 @@ interface ImportFlowProps {
 }
 
 export function ImportFlow({ file, center, maxToAdd, onConfirm, onClose }: ImportFlowProps) {
-	const state = useExcelImport(file, center);
+	const state = useFileImport(file, center);
 
 	return (
 		<div className="absolute inset-0 z-[1300]">

@@ -1,12 +1,9 @@
-const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_TEXT_CHARS = 20_000;
 
 // Convierte una planilla (.xlsx/.xls/.csv) al texto crudo que consume la IA.
+// El tamaño del archivo ya lo validó readImportFile (importStops.ts).
 // SheetJS se carga on-demand para no engordar el bundle inicial.
 export async function parseSpreadsheet(file: File): Promise<string> {
-	if (file.size > MAX_FILE_BYTES) {
-		throw new Error("El archivo es muy grande (máximo 2 MB)");
-	}
 	const { read, utils } = await import("xlsx");
 	const workbook = read(await file.arrayBuffer());
 	const parts: string[] = [];

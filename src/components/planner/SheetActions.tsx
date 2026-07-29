@@ -27,10 +27,10 @@ export function SheetActions({
 		return (
 			<div className="space-y-2 px-4 pb-3">
 				<label className="block w-full cursor-pointer rounded-full border-2 border-emerald-600 py-2 text-center font-semibold text-emerald-700 text-sm">
-					Importar planilla de Excel
+					Importar Excel o PDF
 					<input
 						type="file"
-						accept=".xlsx,.xls,.csv"
+						accept=".xlsx,.xls,.csv,.pdf,application/pdf"
 						className="hidden"
 						onChange={(e) => {
 							const file = e.target.files?.[0];

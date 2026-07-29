@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ImportRow } from "@/hooks/useExcelImport";
+import type { ImportRow } from "@/hooks/useFileImport";
 
 function RowText({ row }: { row: ImportRow }) {
 	return (

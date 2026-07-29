@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { parseSpreadsheet } from "@/lib/excel";
 import { type GeocodeResult, geocodeImported } from "@/lib/geocoding";
-import { requestExtraction } from "@/lib/importStops";
+import { readImportFile, requestExtraction } from "@/lib/importStops";
 
 export interface ImportRow {
 	id: string;
@@ -15,26 +14,26 @@ export type ImportState =
 	| { phase: "review"; rows: ImportRow[] }
 	| { phase: "error"; message: string };
 
-// Pipeline de importación: leer la planilla → extraer pares dirección/localidad
-// con IA → geolocalizar cada par con Georef/Photon (secuencial, con progreso).
+// Pipeline de importación: leer el archivo (Excel/CSV/PDF) → extraer pares
+// dirección/localidad con IA → geolocalizar con Georef/Photon (con progreso).
 // `center` es un snapshot del centro del mapa al momento de elegir el archivo.
-export function useExcelImport(file: File, center: { lat: number; lng: number }) {
+export function useFileImport(file: File, center: { lat: number; lng: number }) {
 	const [state, setState] = useState<ImportState>({
 		phase: "working",
-		message: "Leyendo la planilla…",
+		message: "Leyendo el archivo…",
 	});
 
 	useEffect(() => {
 		let cancelled = false;
 		void (async () => {
 			try {
-				const text = await parseSpreadsheet(file);
+				const payload = await readImportFile(file);
 				if (cancelled) return;
 				setState({ phase: "working", message: "Detectando direcciones con IA…" });
-				const extracted = await requestExtraction(text);
+				const extracted = await requestExtraction(payload);
 				if (cancelled) return;
 				if (extracted.length === 0) {
-					setState({ phase: "error", message: "No encontramos direcciones en la planilla" });
+					setState({ phase: "error", message: "No encontramos direcciones en el archivo" });
 					return;
 				}
 				const rows: ImportRow[] = [];

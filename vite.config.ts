@@ -18,7 +18,8 @@ function extractStopsDev(): Plugin {
 				let raw = "";
 				req.on("data", (chunk) => {
 					raw += chunk;
-					if (raw.length > 200_000) req.destroy();
+					// deja pasar PDFs en base64 (~2,8M chars para un archivo de 2 MB)
+					if (raw.length > 4_000_000) req.destroy();
 				});
 				req.on("end", () => {
 					void (async () => {
