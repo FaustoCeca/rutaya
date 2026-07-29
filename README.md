@@ -9,7 +9,7 @@ Optimizador de rutas de entrega para repartidores. Cargás las paradas en un map
 - ⚡ Optimización automática del orden en cada cambio (sin apretar nada)
 - 🔁 Toggle "Volver al punto de partida" para circuitos de ida y vuelta
 - 🔗 Link compartible: las paradas viajan comprimidas en la URL, sin backend
-- 🧭 "Abrir en Google Maps" con las paradas ya ordenadas, para navegar
+- 🧭 "Abrir en Google Maps" con las paradas ya ordenadas, para navegar — los viajes largos se dividen en tramos encadenados (Google acepta 9 paradas intermedias por link)
 - 🔒 Viajes confirmados: al tocar "Crear viaje" queda bloqueado (nada lo modifica) y guardado en el dispositivo hasta "Terminar viaje"
 - 🕘 Historial de los últimos 5 viajes para reabrirlos con un toque
 - 📄 Importar Excel o PDF: la IA (Claude) detecta las direcciones y localidades en planillas o PDFs sin formato fijo (listas de pedidos, remitos, hojas de ruta — incluso escaneados), la app las geolocaliza con Georef/Photon y las carga como paradas tras una pantalla de revisión — el punto de partida lo elige el usuario

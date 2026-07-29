@@ -1,10 +1,11 @@
 import type { PlannerMode } from "@/hooks/useTripLifecycle";
+import type { MapsLeg } from "@/lib/googleMaps";
 
 interface SheetActionsProps {
 	mode: PlannerMode;
 	isPreview: boolean;
 	canCreate: boolean;
-	googleMapsUrl: string | undefined;
+	mapsLegs: MapsLeg[];
 	onShare: () => void;
 	onCreate: () => void;
 	onSave: () => void;
@@ -16,7 +17,7 @@ export function SheetActions({
 	mode,
 	isPreview,
 	canCreate,
-	googleMapsUrl,
+	mapsLegs,
 	onShare,
 	onCreate,
 	onSave,
@@ -60,16 +61,17 @@ export function SheetActions({
 				>
 					Compartir
 				</button>
-				{googleMapsUrl ? (
+				{mapsLegs.length === 1 && (
 					<a
-						href={googleMapsUrl}
+						href={mapsLegs[0].url}
 						target="_blank"
 						rel="noopener noreferrer"
 						className="flex-1 rounded-full bg-gray-900 py-2.5 text-center font-semibold text-sm text-white"
 					>
 						Abrir en Google Maps
 					</a>
-				) : (
+				)}
+				{mapsLegs.length === 0 && (
 					<button
 						type="button"
 						disabled
@@ -79,6 +81,24 @@ export function SheetActions({
 					</button>
 				)}
 			</div>
+			{mapsLegs.length > 1 && (
+				<div className="flex gap-2">
+					{mapsLegs.map((leg, i) => (
+						<a
+							key={leg.url}
+							href={leg.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex-1 rounded-2xl bg-gray-900 py-2 text-center font-semibold text-sm text-white"
+						>
+							Maps · Tramo {i + 1}
+							<span className="block font-normal text-gray-300 text-xs">
+								paradas {leg.from} a {leg.to}
+							</span>
+						</a>
+					))}
+				</div>
+			)}
 			{isPreview ? (
 				<button
 					type="button"

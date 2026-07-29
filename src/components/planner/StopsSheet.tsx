@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Stop } from "@/hooks/useStops";
 import type { PlannerMode } from "@/hooks/useTripLifecycle";
 import { formatDistance, formatDuration } from "@/lib/format";
+import type { MapsLeg } from "@/lib/googleMaps";
 import type { TripResult } from "@/lib/osrm";
 import type { StoredTrip } from "@/lib/tripStorage";
 import { RouteSummary } from "./RouteSummary";
@@ -19,7 +20,7 @@ interface StopsSheetProps {
 	order: number[] | undefined;
 	isFetching: boolean;
 	isError: boolean;
-	googleMapsUrl: string | undefined;
+	mapsLegs: MapsLeg[];
 	history: StoredTrip[];
 	onShare: () => void;
 	onRetry: () => void;
@@ -92,7 +93,7 @@ export function StopsSheet(props: StopsSheetProps) {
 				mode={mode}
 				isPreview={isPreview}
 				canCreate={!!order}
-				googleMapsUrl={props.googleMapsUrl}
+				mapsLegs={props.mapsLegs}
 				onShare={props.onShare}
 				onCreate={props.onCreateTrip}
 				onSave={props.onSaveTrip}

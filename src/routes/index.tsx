@@ -12,7 +12,7 @@ import { useTrip } from "@/hooks/useTrip";
 import { useTripLifecycle } from "@/hooks/useTripLifecycle";
 import { type GeocodeResult, reverseGeocode } from "@/lib/geocoding";
 import { getCurrentPosition } from "@/lib/geolocation";
-import { buildGoogleMapsUrl } from "@/lib/googleMaps";
+import { buildGoogleMapsLegs } from "@/lib/googleMaps";
 import { buildShareUrl, MAX_SHARED_STOPS } from "@/lib/share";
 import { rootRoute } from "./__root";
 
@@ -51,9 +51,7 @@ function PlannerPage() {
 				.sort((a, b) => a.pos - b.pos)
 				.map((x) => x.stop)
 		: undefined;
-	const googleMapsUrl = orderedStops
-		? buildGoogleMapsUrl(orderedStops, state.roundtrip)
-		: undefined;
+	const mapsLegs = orderedStops ? buildGoogleMapsLegs(orderedStops, state.roundtrip) : [];
 
 	function addStop(lat: number, lng: number, label?: string, asOrigin = false): boolean {
 		if (mode === "trip") {
@@ -158,7 +156,7 @@ function PlannerPage() {
 				order={order}
 				isFetching={tripQuery.isFetching}
 				isError={tripQuery.isError}
-				googleMapsUrl={googleMapsUrl}
+				mapsLegs={mapsLegs}
 				history={history}
 				onShare={() => void handleShare()}
 				onRetry={() => void tripQuery.refetch()}
