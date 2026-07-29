@@ -9,6 +9,7 @@ interface SheetActionsProps {
 	onCreate: () => void;
 	onSave: () => void;
 	onEnd: () => void;
+	onImportFile: (file: File) => void;
 }
 
 export function SheetActions({
@@ -20,10 +21,24 @@ export function SheetActions({
 	onCreate,
 	onSave,
 	onEnd,
+	onImportFile,
 }: SheetActionsProps) {
 	if (mode === "edit") {
 		return (
-			<div className="px-4 pb-3">
+			<div className="space-y-2 px-4 pb-3">
+				<label className="block w-full cursor-pointer rounded-full border-2 border-emerald-600 py-2 text-center font-semibold text-emerald-700 text-sm">
+					Importar planilla de Excel
+					<input
+						type="file"
+						accept=".xlsx,.xls,.csv"
+						className="hidden"
+						onChange={(e) => {
+							const file = e.target.files?.[0];
+							if (file) onImportFile(file);
+							e.target.value = "";
+						}}
+					/>
+				</label>
 				<button
 					type="button"
 					onClick={onCreate}

@@ -30,6 +30,7 @@ interface StopsSheetProps {
 	onSaveTrip: () => void;
 	onEndTrip: () => void;
 	onLoadHistory: (entry: StoredTrip) => void;
+	onImportFile: (file: File) => void;
 }
 
 export function StopsSheet(props: StopsSheetProps) {
@@ -96,6 +97,7 @@ export function StopsSheet(props: StopsSheetProps) {
 				onCreate={props.onCreateTrip}
 				onSave={props.onSaveTrip}
 				onEnd={props.onEndTrip}
+				onImportFile={props.onImportFile}
 			/>
 			{expanded && hasExpandedContent && (
 				<div className="border-gray-100 border-t">

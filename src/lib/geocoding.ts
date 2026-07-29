@@ -72,9 +72,11 @@ function titleCase(text: string): string {
 async function searchGeoref(
 	query: string,
 	center: { lat: number; lng: number },
+	locality?: string,
 ): Promise<GeocodeResult[]> {
 	const url = new URL("https://apis.datos.gob.ar/georef/api/direcciones");
 	url.searchParams.set("direccion", query);
+	if (locality) url.searchParams.set("localidad", locality);
 	url.searchParams.set("max", "10");
 	const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
 	if (!res.ok) throw new Error("No se pudo buscar");
@@ -131,6 +133,35 @@ export async function searchAddresses(
 	// Georef primero: si el usuario tipeó una altura, es el match oficial preciso
 	const merged = [...(georefOk ? georef.value : []), ...(photonOk ? photon.value : [])];
 	return dedupeByProximity(merged).slice(0, 6);
+}
+
+// Geocodifica una dirección importada de una planilla. A diferencia del
+// typeahead, acá tenemos la localidad por separado: Georef la usa como filtro
+// estructurado (mucho más preciso que ordenar por cercanía al mapa).
+export async function geocodeImported(
+	address: string,
+	locality: string,
+	center: { lat: number; lng: number },
+): Promise<GeocodeResult | null> {
+	const query = locality ? `${address}, ${locality}` : address;
+	const hasNumber = /\d/.test(address);
+	const [photon, georef] = await Promise.allSettled([
+		searchPhoton(query, center),
+		hasNumber ? searchGeoref(address, center, locality || undefined) : Promise.resolve([]),
+	]);
+	const georefResults = georef.status === "fulfilled" ? georef.value : [];
+	const photonResults = photon.status === "fulfilled" ? photon.value : [];
+	const best = georefResults[0] ?? photonResults[0];
+	if (best) return best;
+	// último intento: Georef sin filtro de localidad (la IA pudo extraerla mal)
+	if (hasNumber && locality) {
+		try {
+			return (await searchGeoref(address, center))[0] ?? null;
+		} catch {
+			return null;
+		}
+	}
+	return null;
 }
 
 interface NominatimReverse {

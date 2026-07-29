@@ -1,7 +1,7 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import type { RouteState, Stop } from "@/hooks/useStops";
 
-const MAX_SHARED_STOPS = 15;
+export const MAX_SHARED_STOPS = 15;
 const MAX_LABEL_LENGTH = 200;
 
 // Forma canónica de un viaje, usada tanto en el link (?r=) como en localStorage

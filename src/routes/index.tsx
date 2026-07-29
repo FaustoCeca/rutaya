@@ -2,6 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/planner/ConfirmDialog";
 import { FirstVisitHints } from "@/components/planner/FirstVisitHints";
+import { ImportFlow } from "@/components/planner/ImportFlow";
 import { BUENOS_AIRES, type MapFocusTarget, MapView } from "@/components/planner/MapView";
 import { SearchBox } from "@/components/planner/SearchBox";
 import { StopsSheet } from "@/components/planner/StopsSheet";
@@ -12,7 +13,7 @@ import { useTripLifecycle } from "@/hooks/useTripLifecycle";
 import { type GeocodeResult, reverseGeocode } from "@/lib/geocoding";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { buildGoogleMapsUrl } from "@/lib/googleMaps";
-import { buildShareUrl } from "@/lib/share";
+import { buildShareUrl, MAX_SHARED_STOPS } from "@/lib/share";
 import { rootRoute } from "./__root";
 
 export const indexRoute = createRoute({
@@ -33,6 +34,10 @@ function PlannerPage() {
 	);
 	const [focus, setFocus] = useState<MapFocusTarget | null>(null);
 	const centerRef = useRef({ lat: BUENOS_AIRES[0], lng: BUENOS_AIRES[1] });
+	const [importJob, setImportJob] = useState<{
+		file: File;
+		center: { lat: number; lng: number };
+	} | null>(null);
 
 	const tripQuery = useTrip(state.stops, state.roundtrip);
 	const trip = state.stops.length >= 2 ? tripQuery.data : undefined;
@@ -94,6 +99,19 @@ function PlannerPage() {
 		}
 	}
 
+	function handleImportConfirm(added: { lat: number; lng: number; label: string }[]) {
+		let count = 0;
+		for (const s of added) {
+			if (addStop(s.lat, s.lng, s.label)) count++;
+		}
+		setImportJob(null);
+		setToast(
+			count > 0
+				? 'Paradas agregadas. Marcá tu punto de partida con "Empezar acá".'
+				: "Esas paradas ya estaban en la lista",
+		);
+	}
+
 	async function handleShare() {
 		const url = buildShareUrl(state);
 		if (navigator.share) {
@@ -151,7 +169,17 @@ function PlannerPage() {
 				onSaveTrip={lifecycle.saveTrip}
 				onEndTrip={lifecycle.endTrip}
 				onLoadHistory={lifecycle.loadFromHistory}
+				onImportFile={(file) => setImportJob({ file, center: centerRef.current })}
 			/>
+			{importJob && (
+				<ImportFlow
+					file={importJob.file}
+					center={importJob.center}
+					maxToAdd={Math.max(0, MAX_SHARED_STOPS - state.stops.length)}
+					onConfirm={handleImportConfirm}
+					onClose={() => setImportJob(null)}
+				/>
+			)}
 			<Toast message={toast} onDismiss={() => setToast(null)} />
 			{confirm && (
 				<ConfirmDialog
