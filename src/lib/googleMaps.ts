@@ -26,7 +26,7 @@ function legUrl(points: Stop[]): string {
 
 // Divide la ruta en tramos navegables encadenados: cada tramo arranca en la
 // última parada del anterior. Con ≤11 puntos devuelve un solo tramo (el link
-// clásico de siempre); con el tope de 15 paradas nunca hay más de 2 tramos.
+// clásico de siempre); con el tope de 30 paradas nunca hay más de 3 tramos.
 export function buildGoogleMapsLegs(orderedStops: Stop[], roundtrip: boolean): MapsLeg[] {
 	if (orderedStops.length < 2) return [];
 	const points = roundtrip ? [...orderedStops, orderedStops[0]] : orderedStops;
