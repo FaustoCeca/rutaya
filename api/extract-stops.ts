@@ -88,11 +88,17 @@ export async function runExtraction(reqBody: unknown): Promise<ExtractionResult>
 
 	const client = new Anthropic({ apiKey });
 	try {
-		const response = await client.messages.create({
-			model: "claude-haiku-4-5",
+		// Opus 5 lee mucho mejor las planillas desordenadas y los PDF escaneados
+		// que Haiku. effort "medium" contiene la latencia (el thinking adaptativo
+		// viene activo por defecto) y fallbacks reintenta en otro modelo si un
+		// clasificador de seguridad declina un pedido benigno.
+		const response = await client.beta.messages.create({
+			model: "claude-opus-5",
 			max_tokens: 16000,
+			betas: ["server-side-fallback-2026-07-01"],
+			fallbacks: "default",
 			system: SYSTEM,
-			output_config: { format: { type: "json_schema", schema: SCHEMA } },
+			output_config: { format: { type: "json_schema", schema: SCHEMA }, effort: "medium" },
 			messages: [{ role: "user", content }],
 		});
 		const block = response.content.find((b) => b.type === "text");
@@ -114,6 +120,9 @@ export async function runExtraction(reqBody: unknown): Promise<ExtractionResult>
 		};
 	}
 }
+
+// Opus 5 piensa antes de responder: le damos margen sobre el default de Vercel
+export const config = { maxDuration: 60 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
 	if (req.method !== "POST") {
