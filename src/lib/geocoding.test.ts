@@ -187,6 +187,74 @@ describe("geocodeImported", () => {
 
 		expect(result).toBeNull();
 	});
+
+	it("should prefer the real street over a same-named POI or bridge", async () => {
+		// el caso real: la Basílica y el puente rankean antes que la avenida homónima
+		mockGeoApis({
+			georef: { direcciones: [] },
+			photon: {
+				features: [
+					photonFeature(-32.9475, -60.6323, {
+						countrycode: "AR",
+						name: "Basílica Catedral de Nuestra Señora del Rosario",
+						city: "Rosario",
+						osm_key: "amenity",
+						osm_value: "place_of_worship",
+					}),
+					photonFeature(-32.8714, -60.6947, {
+						countrycode: "AR",
+						name: "Puente Nuestra Señora del Rosario",
+						city: "Rosario",
+						osm_key: "highway",
+						osm_value: "motorway",
+					}),
+					photonFeature(-33.0004, -60.6579, {
+						countrycode: "AR",
+						name: "Avenida Nuestra Señora del Rosario",
+						city: "Rosario",
+						osm_key: "highway",
+						osm_value: "tertiary",
+					}),
+				],
+			},
+		});
+
+		const result = await geocodeImported("Nuestra Señora del Rosario 1795", "Rosario", CENTER);
+
+		expect(result?.label).toBe("Avenida Nuestra Señora del Rosario, Rosario");
+		expect(result?.lat).toBeCloseTo(-33.0004, 4);
+	});
+
+	it("should not promote a fuzzy exact address over the relevance-ranked street", async () => {
+		// el caso real: para "Biedma 5951, Rosario" Photon rankea primero la calle
+		// correcta y después una dirección de OTRA calle en Funes que machea "Rosario"
+		mockGeoApis({
+			georef: { direcciones: [] },
+			photon: {
+				features: [
+					photonFeature(-32.9065, -60.703, {
+						countrycode: "AR",
+						name: "Coronel Biedma",
+						city: "Rosario",
+						osm_key: "highway",
+						osm_value: "residential",
+					}),
+					photonFeature(-32.9065, -60.8609, {
+						countrycode: "AR",
+						street: "Avenida del Rosario",
+						housenumber: "5951",
+						city: "Funes",
+						osm_key: "place",
+						osm_value: "house",
+					}),
+				],
+			},
+		});
+
+		const result = await geocodeImported("Biedma 5951", "Rosario", CENTER);
+
+		expect(result?.label).toBe("Coronel Biedma, Rosario");
+	});
 });
 
 describe("reverseGeocode", () => {

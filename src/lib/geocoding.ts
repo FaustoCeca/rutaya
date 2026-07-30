@@ -16,13 +16,30 @@ interface PhotonFeature {
 		housenumber?: string;
 		city?: string;
 		state?: string;
+		osm_key?: string;
+		osm_value?: string;
 	};
+}
+
+// en autopistas y puentes no se entrega nada: no cuentan como "calle"
+const NON_STREET_HIGHWAYS = new Set(["motorway", "trunk", "motorway_link", "trunk_link"]);
+
+// Prioridad de un resultado para direcciones importadas (calle + altura):
+// 0 = calle o dirección con altura, 1 = POI, autopista o puente.
+// Solo DEGRADA lo que no es una calle (evita que la Basílica "Nuestra Señora
+// del Rosario" le gane a la avenida homónima); nunca reordena entre calles y
+// direcciones, porque el ranking de relevancia de Photon es mejor juez ahí
+// (promover "dirección exacta" mandaba "Biedma 5951" a otra calle en Funes).
+function importRank(p: PhotonFeature["properties"]): number {
+	if (p.housenumber) return 0;
+	if (p.osm_key === "highway" && !NON_STREET_HIGHWAYS.has(p.osm_value ?? "")) return 0;
+	return 1;
 }
 
 async function searchPhoton(
 	query: string,
 	center: { lat: number; lng: number },
-): Promise<GeocodeResult[]> {
+): Promise<(GeocodeResult & { rank: number })[]> {
 	const url = new URL("https://photon.komoot.io/api/");
 	url.searchParams.set("q", query);
 	url.searchParams.set("limit", "5");
@@ -44,6 +61,7 @@ async function searchPhoton(
 				label: area ? `${main}, ${area}` : main,
 				lat: f.geometry.coordinates[1],
 				lng: f.geometry.coordinates[0],
+				rank: importRank(p),
 			};
 		});
 }
@@ -130,8 +148,14 @@ export async function searchAddresses(
 	const georefOk = georef.status === "fulfilled";
 	// error solo si fallaron todas las fuentes consultadas
 	if (!photonOk && (!hasNumber || !georefOk)) throw new Error("No se pudo buscar");
-	// Georef primero: si el usuario tipeó una altura, es el match oficial preciso
-	const merged = [...(georefOk ? georef.value : []), ...(photonOk ? photon.value : [])];
+	// Georef primero: si el usuario tipeó una altura, es el match oficial preciso.
+	// El rank de Photon es interno del import: no sale del módulo.
+	const photonPlain = (photonOk ? photon.value : []).map(({ label, lat, lng }) => ({
+		label,
+		lat,
+		lng,
+	}));
+	const merged = [...(georefOk ? georef.value : []), ...photonPlain];
 	return dedupeByProximity(merged).slice(0, 6);
 }
 
@@ -151,8 +175,10 @@ export async function geocodeImported(
 	]);
 	const georefResults = georef.status === "fulfilled" ? georef.value : [];
 	const photonResults = photon.status === "fulfilled" ? photon.value : [];
-	const best = georefResults[0] ?? photonResults[0];
-	if (best) return best;
+	// el sort es estable: dentro del mismo rango se respeta la relevancia de Photon
+	const bestPhoton = [...photonResults].sort((a, b) => a.rank - b.rank)[0];
+	const best = georefResults[0] ?? bestPhoton;
+	if (best) return { label: best.label, lat: best.lat, lng: best.lng };
 	// último intento: Georef sin filtro de localidad (la IA pudo extraerla mal)
 	if (hasNumber && locality) {
 		try {
