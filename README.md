@@ -28,10 +28,15 @@ Optimizador de rutas de entrega para repartidores. Cargás las paradas en un map
 
 ```bash
 bun install
-bun dev        # http://localhost:5173
-bun run lint   # Biome
-bun run build  # tsc + vite build → dist/
+bun dev             # http://localhost:5173
+bun run lint        # Biome
+bun run build       # tsc + vite build → dist/
+bun run test        # Vitest en watch mode
+bun run test:run    # Vitest una sola vez
+bun run test:e2e    # Playwright (levanta su propio dev server en :5199)
 ```
+
+Los tests unitarios (Vitest + Testing Library) viven junto al código (`src/**/*.test.ts(x)`); los e2e (Playwright, con las APIs externas mockeadas) en `tests/`. Antes de la primera corrida e2e: `bunx playwright install chromium`.
 
 Para que funcione la importación de Excel en dev, creá un `.env.local` (gitignoreado) con:
 
