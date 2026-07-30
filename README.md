@@ -19,7 +19,7 @@ Optimizador de rutas de entrega para repartidores. Cargás las paradas en un map
 - React 19 + TypeScript + Vite 7, con [Bun](https://bun.sh) como runtime
 - TanStack Router + TanStack Query, Tailwind CSS 4, Biome
 - Leaflet + tiles de OpenStreetMap
-- APIs públicas gratuitas: [OSRM](https://project-osrm.org) (optimización), [Photon](https://photon.komoot.io) (autocomplete), [Georef](https://datosgobar.github.io/georef-ar-api/) (direcciones oficiales argentinas con altura), [Nominatim](https://nominatim.org) (reverse geocoding)
+- APIs públicas gratuitas: [OSRM](https://project-osrm.org) (matriz de tiempos y rutas; el orden óptimo de visita se resuelve en el cliente — `src/lib/tsp.ts`, exacto con <10 paradas y 2-opt/Or-opt multi-arranque desde 10), [Photon](https://photon.komoot.io) (autocomplete), [Georef](https://datosgobar.github.io/georef-ar-api/) (direcciones oficiales argentinas con altura), [Nominatim](https://nominatim.org) (reverse geocoding)
 - Importación de Excel/PDF: [SheetJS](https://sheetjs.com) lee las planillas en el navegador (los PDF viajan enteros en base64 — Claude los lee nativamente) y una función serverless (`api/extract-stops.ts`) extrae dirección + localidad con la API de Claude (`claude-haiku-4-5`, salida estructurada). La geolocalización nunca pasa por la IA.
 
 > ⚠️ Las APIs públicas son de **uso justo**: sobradas para un repartidor o un equipo chico. Si se escala a muchos usuarios, conviene self-hostear OSRM o pasar a un proveedor pago.

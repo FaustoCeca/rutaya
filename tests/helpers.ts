@@ -79,12 +79,37 @@ export async function mockExternalApis(page: Page): Promise<void> {
 		route.fulfill({ json: {} }),
 	);
 
-	// arma el viaje a partir de las coordenadas pedidas, en el mismo orden
+	// la app calcula el viaje con /table (matriz) + /route (geometría del orden
+	// ya resuelto en el cliente), con /trip como fallback: respondemos los tres
 	await page.route("https://router.project-osrm.org/**", (route) => {
 		const url = new URL(route.request().url());
 		const coords = (url.pathname.split("/").pop() ?? "")
 			.split(";")
 			.map((pair) => pair.split(",").map(Number) as [number, number]);
+		if (url.pathname.includes("/table/")) {
+			const durations = coords.map((_, i) => coords.map((_, j) => (i === j ? 0 : LEG_DURATION_S)));
+			return route.fulfill({ json: { code: "Ok", durations } });
+		}
+		if (url.pathname.includes("/route/")) {
+			const legCount = coords.length - 1;
+			return route.fulfill({
+				json: {
+					code: "Ok",
+					routes: [
+						{
+							duration: legCount * LEG_DURATION_S,
+							distance: legCount * LEG_DISTANCE_M,
+							geometry: { coordinates: coords },
+							legs: Array.from({ length: legCount }, () => ({
+								duration: LEG_DURATION_S,
+								distance: LEG_DISTANCE_M,
+							})),
+						},
+					],
+				},
+			});
+		}
+		// /trip legado (solo se usa si /table o /route fallan)
 		const roundtrip = url.searchParams.get("roundtrip") === "true";
 		const legCount = roundtrip ? coords.length : coords.length - 1;
 		return route.fulfill({
