@@ -16,8 +16,9 @@ export type ImportState =
 
 // Pipeline de importación: leer el archivo (Excel/CSV/PDF) → extraer pares
 // dirección/localidad con IA → geolocalizar con Georef/Photon (con progreso).
-// `center` es un snapshot del centro del mapa al momento de elegir el archivo.
-export function useFileImport(file: File, center: { lat: number; lng: number }) {
+// `getBias` resuelve el punto de sesgo de cercanía (GPS del usuario, con el
+// centro del mapa como fallback) y nunca rechaza.
+export function useFileImport(file: File, getBias: () => Promise<{ lat: number; lng: number }>) {
 	const [state, setState] = useState<ImportState>({
 		phase: "working",
 		message: "Leyendo el archivo…",
@@ -27,6 +28,8 @@ export function useFileImport(file: File, center: { lat: number; lng: number }) 
 		let cancelled = false;
 		void (async () => {
 			try {
+				// en paralelo con la lectura + extracción: el spinner absorbe la latencia
+				const biasPromise = getBias();
 				const payload = await readImportFile(file);
 				if (cancelled) return;
 				setState({ phase: "working", message: "Detectando direcciones con IA…" });
@@ -36,6 +39,8 @@ export function useFileImport(file: File, center: { lat: number; lng: number }) 
 					setState({ phase: "error", message: "No encontramos direcciones en el archivo" });
 					return;
 				}
+				const center = await biasPromise;
+				if (cancelled) return;
 				const rows: ImportRow[] = [];
 				for (let i = 0; i < extracted.length; i++) {
 					setState({
@@ -62,7 +67,7 @@ export function useFileImport(file: File, center: { lat: number; lng: number }) 
 		return () => {
 			cancelled = true;
 		};
-	}, [file, center]);
+	}, [file, getBias]);
 
 	return state;
 }

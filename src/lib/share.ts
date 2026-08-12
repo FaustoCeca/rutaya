@@ -52,6 +52,26 @@ export function buildShareUrl(state: RouteState): string {
 	return `${location.origin}${location.pathname}?r=${encodeRouteState(state)}`;
 }
 
+// Comparte la ruta con el share sheet nativo, o copia el enlace como fallback.
+// Devuelve el mensaje para el toast, o null si no hay nada que mostrar.
+export async function shareRoute(state: RouteState): Promise<string | null> {
+	const url = buildShareUrl(state);
+	if (navigator.share) {
+		try {
+			await navigator.share({ title: "RutaYa — Ruta de entregas", url });
+		} catch {
+			// el usuario cerró el share sheet
+		}
+		return null;
+	}
+	try {
+		await navigator.clipboard.writeText(url);
+		return "Enlace copiado";
+	} catch {
+		return "No se pudo copiar el enlace";
+	}
+}
+
 export function decodeRouteState(encoded: string): RouteState | undefined {
 	try {
 		const json = decompressFromEncodedURIComponent(encoded);
