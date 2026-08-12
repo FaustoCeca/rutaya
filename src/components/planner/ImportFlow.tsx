@@ -45,6 +45,7 @@ export function ImportFlow({ file, getBias, maxToAdd, onConfirm, onClose }: Impo
 				{state.phase === "review" && (
 					<ImportReview
 						rows={state.rows}
+						center={state.center}
 						maxToAdd={maxToAdd}
 						onConfirm={onConfirm}
 						onCancel={onClose}

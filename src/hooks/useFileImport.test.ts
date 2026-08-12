@@ -30,6 +30,8 @@ describe("useFileImport", () => {
 		expect(result.current).toMatchObject({
 			phase: "review",
 			rows: [{ address: "San Martín 500", locality: "Rosario", located: LOCATED }],
+			// el punto de sesgo queda disponible para re-geocodificar filas editadas
+			center: BIAS,
 		});
 	});
 

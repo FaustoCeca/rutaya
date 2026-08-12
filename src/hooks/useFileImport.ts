@@ -11,7 +11,8 @@ export interface ImportRow {
 
 export type ImportState =
 	| { phase: "working"; message: string }
-	| { phase: "review"; rows: ImportRow[] }
+	// center: el punto de sesgo ya resuelto, para re-geocodificar filas editadas
+	| { phase: "review"; rows: ImportRow[]; center: { lat: number; lng: number } }
 	| { phase: "error"; message: string };
 
 // Pipeline de importación: leer el archivo (Excel/CSV/PDF) → extraer pares
@@ -57,7 +58,7 @@ export function useFileImport(file: File, getBias: () => Promise<{ lat: number; 
 					if (cancelled) return;
 					rows.push({ id: crypto.randomUUID(), address, locality, located });
 				}
-				setState({ phase: "review", rows });
+				setState({ phase: "review", rows, center });
 			} catch (err) {
 				if (cancelled) return;
 				const message = err instanceof Error ? err.message : "No se pudo importar la planilla";
