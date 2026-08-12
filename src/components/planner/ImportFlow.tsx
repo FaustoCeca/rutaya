@@ -3,14 +3,14 @@ import { ImportReview } from "./ImportReview";
 
 interface ImportFlowProps {
 	file: File;
-	center: { lat: number; lng: number };
+	getBias: () => Promise<{ lat: number; lng: number }>;
 	maxToAdd: number;
 	onConfirm: (stops: { lat: number; lng: number; label: string }[]) => void;
 	onClose: () => void;
 }
 
-export function ImportFlow({ file, center, maxToAdd, onConfirm, onClose }: ImportFlowProps) {
-	const state = useFileImport(file, center);
+export function ImportFlow({ file, getBias, maxToAdd, onConfirm, onClose }: ImportFlowProps) {
+	const state = useFileImport(file, getBias);
 
 	return (
 		<div className="absolute inset-0 z-[1300]">

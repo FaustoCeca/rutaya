@@ -10,10 +10,11 @@ import { Toast } from "@/components/planner/Toast";
 import { isNearDuplicate } from "@/hooks/useStops";
 import { useTrip } from "@/hooks/useTrip";
 import { useTripLifecycle } from "@/hooks/useTripLifecycle";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { type GeocodeResult, reverseGeocode } from "@/lib/geocoding";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { buildGoogleMapsLegs } from "@/lib/googleMaps";
-import { buildShareUrl, MAX_SHARED_STOPS } from "@/lib/share";
+import { MAX_SHARED_STOPS, shareRoute } from "@/lib/share";
 import { rootRoute } from "./__root";
 
 export const indexRoute = createRoute({
@@ -34,9 +35,10 @@ function PlannerPage() {
 	);
 	const [focus, setFocus] = useState<MapFocusTarget | null>(null);
 	const centerRef = useRef({ lat: BUENOS_AIRES[0], lng: BUENOS_AIRES[1] });
+	const userLoc = useUserLocation();
 	const [importJob, setImportJob] = useState<{
 		file: File;
-		center: { lat: number; lng: number };
+		getBias: () => Promise<{ lat: number; lng: number }>;
 	} | null>(null);
 
 	const tripQuery = useTrip(state.stops, state.roundtrip);
@@ -86,9 +88,15 @@ function PlannerPage() {
 		}
 	}
 
+	// Sesgo de cercanía del import: posición GPS fresca, o el centro del mapa
+	async function resolveImportBias() {
+		return (await userLoc.getFreshLocation()) ?? centerRef.current;
+	}
+
 	async function handleUseMyLocation() {
 		try {
 			const pos = await getCurrentPosition();
+			userLoc.recordLocation(pos);
 			if (addStop(pos.lat, pos.lng, "Mi ubicación", true)) {
 				focusMap(pos.lat, pos.lng);
 			}
@@ -111,21 +119,8 @@ function PlannerPage() {
 	}
 
 	async function handleShare() {
-		const url = buildShareUrl(state);
-		if (navigator.share) {
-			try {
-				await navigator.share({ title: "RutaYa — Ruta de entregas", url });
-			} catch {
-				// el usuario cerró el share sheet
-			}
-			return;
-		}
-		try {
-			await navigator.clipboard.writeText(url);
-			setToast("Enlace copiado");
-		} catch {
-			setToast("No se pudo copiar el enlace");
-		}
+		const message = await shareRoute(state);
+		if (message) setToast(message);
 	}
 
 	return (
@@ -135,6 +130,7 @@ function PlannerPage() {
 				order={order}
 				geometry={trip?.geometry}
 				focus={focus}
+				gpsCenter={state.stops.length === 0 ? userLoc.startupFix : null}
 				onMapTap={addStop}
 				onCenterChange={(lat, lng) => {
 					centerRef.current = { lat, lng };
@@ -142,7 +138,7 @@ function PlannerPage() {
 			/>
 			{mode === "edit" && (
 				<SearchBox
-					getCenter={() => centerRef.current}
+					getCenter={() => userLoc.locationRef.current ?? centerRef.current}
 					onSelect={handleSearchSelect}
 					onUseMyLocation={() => void handleUseMyLocation()}
 				/>
@@ -167,12 +163,12 @@ function PlannerPage() {
 				onSaveTrip={lifecycle.saveTrip}
 				onEndTrip={lifecycle.endTrip}
 				onLoadHistory={lifecycle.loadFromHistory}
-				onImportFile={(file) => setImportJob({ file, center: centerRef.current })}
+				onImportFile={(file) => setImportJob({ file, getBias: resolveImportBias })}
 			/>
 			{importJob && (
 				<ImportFlow
 					file={importJob.file}
-					center={importJob.center}
+					getBias={importJob.getBias}
 					maxToAdd={Math.max(0, MAX_SHARED_STOPS - state.stops.length)}
 					onConfirm={handleImportConfirm}
 					onClose={() => setImportJob(null)}
@@ -187,7 +183,13 @@ function PlannerPage() {
 					onCancel={lifecycle.cancelConfirm}
 				/>
 			)}
-			<FirstVisitHints showWelcome={mode === "edit" && !r} />
+			<FirstVisitHints
+				showWelcome={mode === "edit" && !r}
+				onWelcomeDone={() => {
+					// en preview/trip no hay búsqueda ni import: no pedir permiso ahí
+					if (mode === "edit") userLoc.requestStartupLocation();
+				}}
+			/>
 		</main>
 	);
 }
