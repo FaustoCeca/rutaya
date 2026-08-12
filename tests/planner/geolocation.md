@@ -36,3 +36,13 @@ La posición se emula con `test.use({ geolocation })` (Rosario); las APIs extern
 **Flow:** Abrir la app → tour visible → cerrarlo con "¡Empezar!".
 
 **Key verification points:** con el tour en pantalla no hubo ningún pedido de posición; tras cerrarlo se dispara el primero.
+
+## `GEO-E2E-004` — Mi ubicación actual como punto de partida
+
+**Priority:** `high`
+
+**Preconditions:** permiso de geolocalización otorgado, posición emulada en Rosario.
+
+**Flow:** Abrir la app → "Usar mi ubicación actual" en el selector de punto de partida.
+
+**Key verification points:** aparece "Salís desde Mi ubicación"; la parada "Mi ubicación" queda marcada como "Origen".

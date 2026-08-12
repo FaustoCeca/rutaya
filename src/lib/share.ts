@@ -37,7 +37,8 @@ export function fromRoutePayload(data: unknown): RouteState | undefined {
 		if (typeof label !== "string" || label.length > MAX_LABEL_LENGTH) return undefined;
 		stops.push({ id: crypto.randomUUID(), label, lat, lng });
 	}
-	return { stops, roundtrip: rt === true };
+	// un viaje codificado ya fue creado con su punto de partida al frente
+	return { stops, roundtrip: rt === true, originId: stops[0]?.id ?? null };
 }
 
 export function sameRoute(a: RouteState, b: RouteState): boolean {

@@ -11,9 +11,9 @@ Todas las APIs externas (OSRM, Photon, Georef, Nominatim, tiles OSM) se mockean 
 
 **Priority:** `critical`
 
-**Flow:** Buscar y agregar dos paradas → ver resumen "2 paradas · 10 min · 3 km" → expandir panel.
+**Flow:** Buscar y agregar dos paradas → ver resumen "2 paradas · 10 min · 3 km" → expandir panel → marcar el punto de partida con "Empezar acá".
 
-**Key verification points:** resumen con totales; la primera parada queda marcada como "Origen".
+**Key verification points:** resumen con totales; sin punto de partida elegido "Crear viaje" está deshabilitado y se ofrece el selector "¿Desde dónde salís?"; al marcarlo la parada muestra "Origen" y el botón se habilita.
 
 ## `PLANNER-E2E-002` — Ida y vuelta
 
@@ -27,7 +27,7 @@ Todas las APIs externas (OSRM, Photon, Georef, Nominatim, tiles OSM) se mockean 
 
 **Priority:** `critical`
 
-**Flow:** Cargar 2 paradas → "Crear viaje" → recargar la página.
+**Flow:** Cargar 2 paradas → marcar el punto de partida → "Crear viaje" → recargar la página.
 
 **Key verification points:** badge "Viaje en curso"; el buscador desaparece (edición bloqueada); tras reload el viaje sigue activo (localStorage).
 
@@ -35,7 +35,7 @@ Todas las APIs externas (OSRM, Photon, Georef, Nominatim, tiles OSM) se mockean 
 
 **Priority:** `high`
 
-**Flow:** Crear viaje → "Terminar viaje" → confirmar en el diálogo → expandir panel.
+**Flow:** Crear viaje (con punto de partida marcado) → "Terminar viaje" → confirmar en el diálogo → expandir panel.
 
 **Key verification points:** vuelve al editor vacío; el viaje aparece en "Viajes anteriores" con su origen.
 
@@ -66,3 +66,11 @@ Todas las APIs externas (OSRM, Photon, Georef, Nominatim, tiles OSM) se mockean 
 **Flow:** Abrir la app → cerrar el tour con "¡Empezar!".
 
 **Key verification points:** el tour aparece solo en la primera visita y se puede cerrar.
+
+## `PLANNER-E2E-008` — Historial de puntos de partida
+
+**Priority:** `high`
+
+**Flow:** Crear un viaje con origen marcado → terminarlo → elegir ese origen desde las partidas rápidas del selector.
+
+**Key verification points:** el origen del viaje anterior aparece como botón de partida rápida (se guardan los últimos 3); al tocarlo queda elegido como punto de partida ("Salís desde …").

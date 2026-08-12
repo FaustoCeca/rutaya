@@ -4,8 +4,11 @@ import { decodeRouteState, sameRoute } from "@/lib/share";
 import {
 	clearActiveTrip,
 	loadActiveTrip,
+	loadStartHistory,
 	loadTripHistory,
+	pushStartHistory,
 	pushTripHistory,
+	type StoredStart,
 	type StoredTrip,
 	saveActiveTrip,
 } from "@/lib/tripStorage";
@@ -27,7 +30,7 @@ interface InitialModel {
 }
 
 function buildInitialModel(r: string | undefined): InitialModel {
-	const empty: RouteState = { stops: [], roundtrip: false };
+	const empty: RouteState = { stops: [], roundtrip: false, originId: null };
 	const active = loadActiveTrip();
 	if (r) {
 		const linked = decodeRouteState(r);
@@ -53,6 +56,7 @@ export function useTripLifecycle(r: string | undefined) {
 	const [mode, setMode] = useState<PlannerMode>(initial.mode);
 	const [isPreview, setIsPreview] = useState(initial.isPreview);
 	const [history, setHistory] = useState<StoredTrip[]>(loadTripHistory);
+	const [startHistory, setStartHistory] = useState<StoredStart[]>(loadStartHistory);
 	const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
 	// saca ?r= de la URL para que un reload no resucite el viaje del enlace
@@ -63,7 +67,10 @@ export function useTripLifecycle(r: string | undefined) {
 	function activate(routeState: RouteState) {
 		saveActiveTrip(routeState);
 		pushTripHistory(routeState);
+		const origin = routeState.stops[0];
+		if (origin) pushStartHistory({ lat: origin.lat, lng: origin.lng, label: origin.label });
 		setHistory(loadTripHistory());
+		setStartHistory(loadStartHistory());
 		setIsPreview(false);
 		setMode("trip");
 		setConfirm(null);
@@ -125,6 +132,7 @@ export function useTripLifecycle(r: string | undefined) {
 		isPreview,
 		invalidLink: initial.invalidLink,
 		history,
+		startHistory,
 		confirm,
 		createTrip,
 		saveTrip,

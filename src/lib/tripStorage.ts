@@ -1,9 +1,22 @@
-import type { RouteState } from "@/hooks/useStops";
+import { findNearStop, type RouteState } from "@/hooks/useStops";
 import { fromRoutePayload, toRoutePayload } from "./share";
 
 const ACTIVE_KEY = "rutaya-active-trip";
 const HISTORY_KEY = "rutaya-trip-history";
 const HISTORY_MAX = 5;
+const START_HISTORY_KEY = "rutaya-start-history";
+const START_HISTORY_MAX = 3;
+
+// Etiqueta del origen tomado del GPS. Nunca entra al historial de partidas:
+// ya existe el botón fijo "Usar mi ubicación", y guardar coordenadas viejas
+// bajo ese nombre señalaría un lugar equivocado.
+export const MY_LOCATION_LABEL = "Mi ubicación";
+
+export interface StoredStart {
+	lat: number;
+	lng: number;
+	label: string;
+}
 
 export interface StoredTrip {
 	state: RouteState;
@@ -69,6 +82,44 @@ export function pushTripHistory(state: RouteState): void {
 			...rest.map((t) => ({ p: toRoutePayload(t.state), t: t.createdAt })),
 		];
 		localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, HISTORY_MAX)));
+	} catch {
+		// ignorar
+	}
+}
+
+function isStoredStart(x: unknown): x is StoredStart {
+	if (typeof x !== "object" || x === null) return false;
+	const { lat, lng, label } = x as { lat?: unknown; lng?: unknown; label?: unknown };
+	return (
+		typeof lat === "number" &&
+		Number.isFinite(lat) &&
+		typeof lng === "number" &&
+		Number.isFinite(lng) &&
+		typeof label === "string"
+	);
+}
+
+export function loadStartHistory(): StoredStart[] {
+	try {
+		const raw = localStorage.getItem(START_HISTORY_KEY);
+		if (!raw) return [];
+		const list = JSON.parse(raw);
+		if (!Array.isArray(list)) return [];
+		return list.filter(isStoredStart).slice(0, START_HISTORY_MAX);
+	} catch {
+		return [];
+	}
+}
+
+export function pushStartHistory(start: StoredStart): void {
+	if (start.label === MY_LOCATION_LABEL) return;
+	try {
+		// el mismo lugar (±11 m) ya guardado sube al tope en vez de duplicarse
+		const rest = loadStartHistory().filter((s) => !findNearStop([start], s.lat, s.lng));
+		localStorage.setItem(
+			START_HISTORY_KEY,
+			JSON.stringify([start, ...rest].slice(0, START_HISTORY_MAX)),
+		);
 	} catch {
 		// ignorar
 	}
