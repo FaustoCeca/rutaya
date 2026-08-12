@@ -7,7 +7,7 @@ import { BUENOS_AIRES, type MapFocusTarget, MapView } from "@/components/planner
 import { SearchBox } from "@/components/planner/SearchBox";
 import { StopsSheet } from "@/components/planner/StopsSheet";
 import { Toast } from "@/components/planner/Toast";
-import { isNearDuplicate } from "@/hooks/useStops";
+import { findNearStop, isNearDuplicate } from "@/hooks/useStops";
 import { useTrip } from "@/hooks/useTrip";
 import { useTripLifecycle } from "@/hooks/useTripLifecycle";
 import { useUserLocation } from "@/hooks/useUserLocation";
@@ -15,6 +15,7 @@ import { type GeocodeResult, reverseGeocode } from "@/lib/geocoding";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { buildGoogleMapsLegs } from "@/lib/googleMaps";
 import { MAX_SHARED_STOPS, shareRoute } from "@/lib/share";
+import { MY_LOCATION_LABEL } from "@/lib/tripStorage";
 import { rootRoute } from "./__root";
 
 export const indexRoute = createRoute({
@@ -29,7 +30,7 @@ export const indexRoute = createRoute({
 function PlannerPage() {
 	const { r } = indexRoute.useSearch();
 	const lifecycle = useTripLifecycle(r);
-	const { state, dispatch, mode, isPreview, history, confirm } = lifecycle;
+	const { state, dispatch, mode, isPreview, history, startHistory, confirm } = lifecycle;
 	const [toast, setToast] = useState<string | null>(
 		lifecycle.invalidLink ? "El enlace no es válido" : null,
 	);
@@ -41,6 +42,7 @@ function PlannerPage() {
 		getBias: () => Promise<{ lat: number; lng: number }>;
 	} | null>(null);
 
+	const hasOrigin = state.originId !== null;
 	const tripQuery = useTrip(state.stops, state.roundtrip);
 	const trip = state.stops.length >= 2 ? tripQuery.data : undefined;
 	// solo aplicar el orden si corresponde al set actual (evita numeración inconsistente
@@ -93,13 +95,23 @@ function PlannerPage() {
 		return (await userLoc.getFreshLocation()) ?? centerRef.current;
 	}
 
+	// Fija el punto de partida: si ese lugar ya es una parada la promueve a
+	// origen; si no, la agrega como parada inicial.
+	function setStart(lat: number, lng: number, label: string) {
+		const existing = findNearStop(state.stops, lat, lng);
+		if (existing) {
+			dispatch({ type: "makeOrigin", id: existing.id });
+			focusMap(existing.lat, existing.lng);
+			return;
+		}
+		if (addStop(lat, lng, label, true)) focusMap(lat, lng);
+	}
+
 	async function handleUseMyLocation() {
 		try {
 			const pos = await getCurrentPosition();
 			userLoc.recordLocation(pos);
-			if (addStop(pos.lat, pos.lng, "Mi ubicación", true)) {
-				focusMap(pos.lat, pos.lng);
-			}
+			setStart(pos.lat, pos.lng, MY_LOCATION_LABEL);
 		} catch {
 			setToast("No pudimos acceder a tu ubicación. Revisá los permisos.");
 		}
@@ -148,12 +160,14 @@ function PlannerPage() {
 				isPreview={isPreview}
 				stops={state.stops}
 				roundtrip={state.roundtrip}
+				hasOrigin={hasOrigin}
 				trip={trip}
 				order={order}
 				isFetching={tripQuery.isFetching}
 				isError={tripQuery.isError}
 				mapsLegs={mapsLegs}
 				history={history}
+				startHistory={startHistory}
 				onShare={() => void handleShare()}
 				onRetry={() => void tripQuery.refetch()}
 				onToggleRoundtrip={() => dispatch({ type: "toggleRoundtrip" })}
@@ -164,6 +178,8 @@ function PlannerPage() {
 				onEndTrip={lifecycle.endTrip}
 				onLoadHistory={lifecycle.loadFromHistory}
 				onImportFile={(file) => setImportJob({ file, getBias: resolveImportBias })}
+				onUseMyLocation={() => void handleUseMyLocation()}
+				onPickStart={(start) => setStart(start.lat, start.lng, start.label)}
 			/>
 			{importJob && (
 				<ImportFlow

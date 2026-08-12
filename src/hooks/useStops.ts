@@ -10,6 +10,9 @@ export interface Stop {
 export interface RouteState {
 	stops: Stop[];
 	roundtrip: boolean;
+	// parada elegida explícitamente como punto de partida (la app la mantiene en
+	// stops[0]); null hasta que el usuario la elige, y sin ella no se crea el viaje
+	originId: string | null;
 }
 
 export type StopsAction =
@@ -29,11 +32,19 @@ function stopsReducer(state: RouteState, action: StopsAction): RouteState {
 		case "add":
 			return { ...state, stops: [...state.stops, action.stop] };
 		case "remove":
-			return { ...state, stops: state.stops.filter((s) => s.id !== action.id) };
+			return {
+				...state,
+				stops: state.stops.filter((s) => s.id !== action.id),
+				originId: state.originId === action.id ? null : state.originId,
+			};
 		case "makeOrigin": {
 			const stop = state.stops.find((s) => s.id === action.id);
 			if (!stop) return state;
-			return { ...state, stops: [stop, ...state.stops.filter((s) => s.id !== action.id)] };
+			return {
+				...state,
+				stops: [stop, ...state.stops.filter((s) => s.id !== action.id)],
+				originId: stop.id,
+			};
 		}
 		case "relabel":
 			return {
@@ -43,18 +54,26 @@ function stopsReducer(state: RouteState, action: StopsAction): RouteState {
 		case "toggleRoundtrip":
 			return { ...state, roundtrip: !state.roundtrip };
 		case "reset":
-			return { stops: [], roundtrip: false };
+			return { stops: [], roundtrip: false, originId: null };
 		case "hydrate":
 			return action.state;
 	}
 }
 
-export function isNearDuplicate(stops: Stop[], lat: number, lng: number): boolean {
-	return stops.some(
-		(s) =>
-			Math.abs(s.lat - lat) < DUPLICATE_THRESHOLD_DEG &&
-			Math.abs(s.lng - lng) < DUPLICATE_THRESHOLD_DEG,
+export function findNearStop<T extends { lat: number; lng: number }>(
+	points: T[],
+	lat: number,
+	lng: number,
+): T | undefined {
+	return points.find(
+		(p) =>
+			Math.abs(p.lat - lat) < DUPLICATE_THRESHOLD_DEG &&
+			Math.abs(p.lng - lng) < DUPLICATE_THRESHOLD_DEG,
 	);
+}
+
+export function isNearDuplicate(stops: Stop[], lat: number, lng: number): boolean {
+	return findNearStop(stops, lat, lng) !== undefined;
 }
 
 export function useStops(initialState: RouteState) {

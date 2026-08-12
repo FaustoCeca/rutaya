@@ -77,6 +77,22 @@ test.describe("Geolocalización", () => {
 		},
 	);
 
+	test(
+		"The current GPS position can be chosen as the trip start point",
+		{ tag: ["@high", "@e2e", "@planner", "@GEO-E2E-004"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+
+			await page.getByRole("button", { name: "Usar mi ubicación actual" }).click();
+
+			await expect(page.getByText("Salís desde Mi ubicación")).toBeVisible();
+			await planner.expandSheet();
+			await expect(planner.stopItem("Mi ubicación")).toContainText("Origen");
+		},
+	);
+
 	test.describe("permiso denegado", () => {
 		test.use({ permissions: [] });
 

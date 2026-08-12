@@ -15,6 +15,7 @@ function makeState(overrides: Partial<RouteState> = {}): RouteState {
 			{ id: "b", label: "Caminito", lat: -34.6393, lng: -58.3657 },
 		],
 		roundtrip: false,
+		originId: "a",
 		...overrides,
 	};
 }
@@ -49,6 +50,13 @@ describe("encodeRouteState / decodeRouteState", () => {
 
 		expect(decoded?.stops[0].id).not.toBe("a");
 		expect(decoded?.stops[0].id).not.toBe(decoded?.stops[1].id);
+	});
+
+	it("should mark the first decoded stop as the origin", () => {
+		const decoded = decodeRouteState(encodeRouteState(makeState()));
+
+		expect(decoded).toBeDefined();
+		expect(decoded?.originId).toBe(decoded?.stops[0].id);
 	});
 
 	it("should return undefined for garbage input", () => {

@@ -4,9 +4,10 @@ import type { PlannerMode } from "@/hooks/useTripLifecycle";
 import { formatDistance, formatDuration } from "@/lib/format";
 import type { MapsLeg } from "@/lib/googleMaps";
 import type { TripResult } from "@/lib/osrm";
-import type { StoredTrip } from "@/lib/tripStorage";
+import type { StoredStart, StoredTrip } from "@/lib/tripStorage";
 import { RouteSummary } from "./RouteSummary";
 import { SheetActions } from "./SheetActions";
+import { StartPointPicker } from "./StartPointPicker";
 import { StopListItem } from "./StopListItem";
 import { TripHistoryList } from "./TripHistoryList";
 
@@ -15,6 +16,8 @@ interface StopsSheetProps {
 	isPreview: boolean;
 	stops: Stop[];
 	roundtrip: boolean;
+	// hay un punto de partida elegido explícitamente (queda en stops[0])
+	hasOrigin: boolean;
 	trip: TripResult | undefined;
 	// orden validado contra el set actual de paradas (undefined si el trip quedó viejo)
 	order: number[] | undefined;
@@ -22,6 +25,7 @@ interface StopsSheetProps {
 	isError: boolean;
 	mapsLegs: MapsLeg[];
 	history: StoredTrip[];
+	startHistory: StoredStart[];
 	onShare: () => void;
 	onRetry: () => void;
 	onToggleRoundtrip: () => void;
@@ -32,10 +36,12 @@ interface StopsSheetProps {
 	onEndTrip: () => void;
 	onLoadHistory: (entry: StoredTrip) => void;
 	onImportFile: (file: File) => void;
+	onUseMyLocation: () => void;
+	onPickStart: (start: StoredStart) => void;
 }
 
 export function StopsSheet(props: StopsSheetProps) {
-	const { mode, isPreview, stops, roundtrip, trip, order, history } = props;
+	const { mode, isPreview, stops, roundtrip, hasOrigin, trip, order, history } = props;
 	const [expanded, setExpanded] = useState(false);
 	const locked = mode === "trip";
 
@@ -89,10 +95,18 @@ export function StopsSheet(props: StopsSheetProps) {
 				isError={props.isError}
 				onRetry={props.onRetry}
 			/>
+			{mode === "edit" && (
+				<StartPointPicker
+					originLabel={hasOrigin ? (stops[0]?.label ?? null) : null}
+					startHistory={props.startHistory}
+					onUseMyLocation={props.onUseMyLocation}
+					onPickStart={props.onPickStart}
+				/>
+			)}
 			<SheetActions
 				mode={mode}
 				isPreview={isPreview}
-				canCreate={!!order}
+				canCreate={!!order && hasOrigin}
 				mapsLegs={props.mapsLegs}
 				onShare={props.onShare}
 				onCreate={props.onCreateTrip}
@@ -109,7 +123,7 @@ export function StopsSheet(props: StopsSheetProps) {
 									key={stop.id}
 									stop={stop}
 									visitNumber={pos + 1}
-									isOrigin={pos === 0}
+									isOrigin={pos === 0 && hasOrigin}
 									leg={pos > 0 ? legs?.[pos - 1] : undefined}
 									readonly={locked}
 									onRemove={() => props.onRemove(stop.id)}

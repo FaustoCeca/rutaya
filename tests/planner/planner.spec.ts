@@ -15,9 +15,17 @@ test.describe("Planner", () => {
 			await planner.addStop(PLACES.caminito);
 
 			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			// sin punto de partida elegido no se puede crear el viaje
+			await expect(page.getByText("¿Desde dónde salís?")).toBeVisible();
+			await expect(planner.createTripButton).toBeDisabled();
+
 			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+
 			await expect(planner.stopItem(PLACES.obelisco.label)).toContainText("Origen");
 			await expect(planner.stopItem(PLACES.caminito.label)).toBeVisible();
+			await expect(page.getByText(`Salís desde ${PLACES.obelisco.label}`)).toBeVisible();
+			await expect(planner.createTripButton).toBeEnabled();
 		},
 	);
 
@@ -50,6 +58,8 @@ test.describe("Planner", () => {
 			await planner.addStop(PLACES.obelisco);
 			await planner.addStop(PLACES.caminito);
 			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
 
 			await planner.createTripButton.click();
 
@@ -74,6 +84,8 @@ test.describe("Planner", () => {
 			await planner.addStop(PLACES.obelisco);
 			await planner.addStop(PLACES.caminito);
 			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
 			await planner.createTripButton.click();
 
 			await planner.endTripButton.click();
@@ -81,7 +93,7 @@ test.describe("Planner", () => {
 			await planner.confirmDialog("Terminar viaje");
 
 			await expect(page.getByText("Agregá al menos 2 paradas")).toBeVisible();
-			await planner.expandSheet();
+			// el panel quedó expandido desde que se marcó el origen
 			await expect(page.getByText("Viajes anteriores")).toBeVisible();
 			await expect(page.getByText(`Desde: ${PLACES.obelisco.label}`)).toBeVisible();
 		},
@@ -117,6 +129,30 @@ test.describe("Planner", () => {
 
 			await planner.verifyToast("El enlace no es válido");
 			await expect(page.getByText("Agregá al menos 2 paradas")).toBeVisible();
+		},
+	);
+
+	test(
+		"The chosen start point is offered again for the next trip",
+		{ tag: ["@high", "@e2e", "@planner", "@PLANNER-E2E-008"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+			await planner.endTripButton.click();
+			await planner.confirmDialog("Terminar viaje");
+
+			// de vuelta en el editor, el origen del viaje anterior es partida rápida
+			await expect(page.getByText("¿Desde dónde salís?")).toBeVisible();
+			await planner.recentStart(PLACES.obelisco.label).click();
+
+			await expect(page.getByText(`Salís desde ${PLACES.obelisco.label}`)).toBeVisible();
 		},
 	);
 

@@ -36,6 +36,16 @@ export class PlannerPage extends BasePage {
 		await this.page.getByRole("button", { name: place.label }).click();
 	}
 
+	// marca una parada de la lista como punto de partida (requiere panel expandido)
+	async markOrigin(label: string): Promise<void> {
+		await this.page.getByRole("button", { name: `Empezar la ruta desde ${label}` }).click();
+	}
+
+	// partida rápida del historial de puntos de inicio (el botón muestra solo el label)
+	recentStart(label: string): Locator {
+		return this.page.getByRole("button", { name: label, exact: true });
+	}
+
 	// el aria-label pisa al texto visible ("Ver paradas") como nombre accesible
 	async expandSheet(): Promise<void> {
 		await this.page.getByRole("button", { name: "Expandir panel" }).click();
