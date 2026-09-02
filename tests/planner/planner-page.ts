@@ -9,6 +9,7 @@ export class PlannerPage extends BasePage {
 	readonly shareButton: Locator;
 	readonly saveSharedTripButton: Locator;
 	readonly roundtripToggle: Locator;
+	readonly nextStopLink: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -18,6 +19,7 @@ export class PlannerPage extends BasePage {
 		this.shareButton = page.getByRole("button", { name: "Compartir" });
 		this.saveSharedTripButton = page.getByRole("button", { name: "Guardar como mi viaje" });
 		this.roundtripToggle = page.getByRole("checkbox");
+		this.nextStopLink = page.getByRole("link", { name: /Ir a la próxima parada/ });
 	}
 
 	// mocks de red + flags de primera visita; llamar antes de goto()
@@ -63,5 +65,10 @@ export class PlannerPage extends BasePage {
 
 	stopItem(label: string): Locator {
 		return this.page.getByRole("listitem").filter({ hasText: label });
+	}
+
+	// checkbox de entrega de la fila de una parada (solo en viaje en curso)
+	deliveredToggle(label: string): Locator {
+		return this.stopItem(label).getByRole("checkbox");
 	}
 }

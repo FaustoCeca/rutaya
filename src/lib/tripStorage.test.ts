@@ -9,6 +9,7 @@ import {
 	pushTripHistory,
 	type StoredStart,
 	saveActiveTrip,
+	saveDeliveredStops,
 } from "./tripStorage";
 
 function makeState(label: string, lat = -34.6): RouteState {
@@ -57,6 +58,51 @@ describe("active trip", () => {
 
 		clearActiveTrip();
 
+		expect(loadActiveTrip()).toBeNull();
+	});
+});
+
+describe("delivered stops", () => {
+	it("should load the delivered indices saved for the active trip", () => {
+		saveActiveTrip(makeState("Obelisco"));
+
+		saveDeliveredStops([1]);
+
+		expect(loadActiveTrip()?.delivered).toEqual([1]);
+	});
+
+	it("should default to no deliveries for a freshly saved trip", () => {
+		saveActiveTrip(makeState("Obelisco"));
+
+		expect(loadActiveTrip()?.delivered).toEqual([]);
+	});
+
+	it("should reset deliveries when a new active trip is saved", () => {
+		saveActiveTrip(makeState("Obelisco"));
+		saveDeliveredStops([1]);
+
+		saveActiveTrip(makeState("Otro viaje", -34.7));
+
+		expect(loadActiveTrip()?.delivered).toEqual([]);
+	});
+
+	it("should filter the origin, out-of-range indices and garbage", () => {
+		// makeState tiene 2 paradas: solo el índice 1 es entregable
+		saveActiveTrip(makeState("Obelisco"));
+		const raw = localStorage.getItem("rutaya-active-trip");
+		const record = JSON.parse(raw ?? "{}");
+		localStorage.setItem(
+			"rutaya-active-trip",
+			JSON.stringify({ ...record, d: [0, 1, 99, 1.5, "x"] }),
+		);
+
+		expect(loadActiveTrip()?.delivered).toEqual([1]);
+	});
+
+	it("should not create a record when there is no active trip", () => {
+		saveDeliveredStops([1]);
+
+		expect(localStorage.getItem("rutaya-active-trip")).toBeNull();
 		expect(loadActiveTrip()).toBeNull();
 	});
 });

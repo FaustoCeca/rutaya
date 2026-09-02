@@ -11,6 +11,7 @@ import {
 	type StoredStart,
 	type StoredTrip,
 	saveActiveTrip,
+	saveDeliveredStops,
 } from "@/lib/tripStorage";
 import { type RouteState, useStops } from "./useStops";
 
@@ -27,6 +28,7 @@ interface InitialModel {
 	mode: PlannerMode;
 	isPreview: boolean;
 	invalidLink: boolean;
+	delivered: number[];
 }
 
 function buildInitialModel(r: string | undefined): InitialModel {
@@ -36,17 +38,37 @@ function buildInitialModel(r: string | undefined): InitialModel {
 		const linked = decodeRouteState(r);
 		if (linked && linked.stops.length >= 2) {
 			const matchesActive = active !== null && sameRoute(linked, active.state);
-			return { routeState: linked, mode: "trip", isPreview: !matchesActive, invalidLink: false };
+			return {
+				routeState: linked,
+				mode: "trip",
+				isPreview: !matchesActive,
+				invalidLink: false,
+				// mismo viaje que el activo: los índices entregados siguen valiendo
+				// porque sameRoute garantiza el mismo orden de paradas
+				delivered: matchesActive ? active.delivered : [],
+			};
 		}
 		// enlace roto: caer al viaje activo si hay, si no al editor vacío
 		return active
-			? { routeState: active.state, mode: "trip", isPreview: false, invalidLink: true }
-			: { routeState: empty, mode: "edit", isPreview: false, invalidLink: true };
+			? {
+					routeState: active.state,
+					mode: "trip",
+					isPreview: false,
+					invalidLink: true,
+					delivered: active.delivered,
+				}
+			: { routeState: empty, mode: "edit", isPreview: false, invalidLink: true, delivered: [] };
 	}
 	if (active) {
-		return { routeState: active.state, mode: "trip", isPreview: false, invalidLink: false };
+		return {
+			routeState: active.state,
+			mode: "trip",
+			isPreview: false,
+			invalidLink: false,
+			delivered: active.delivered,
+		};
 	}
-	return { routeState: empty, mode: "edit", isPreview: false, invalidLink: false };
+	return { routeState: empty, mode: "edit", isPreview: false, invalidLink: false, delivered: [] };
 }
 
 export function useTripLifecycle(r: string | undefined) {
@@ -58,6 +80,7 @@ export function useTripLifecycle(r: string | undefined) {
 	const [history, setHistory] = useState<StoredTrip[]>(loadTripHistory);
 	const [startHistory, setStartHistory] = useState<StoredStart[]>(loadStartHistory);
 	const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+	const [delivered, setDelivered] = useState<number[]>(initial.delivered);
 
 	// saca ?r= de la URL para que un reload no resucite el viaje del enlace
 	function clearShareParam() {
@@ -71,10 +94,21 @@ export function useTripLifecycle(r: string | undefined) {
 		if (origin) pushStartHistory({ lat: origin.lat, lng: origin.lng, label: origin.label });
 		setHistory(loadTripHistory());
 		setStartHistory(loadStartHistory());
+		setDelivered([]);
 		setIsPreview(false);
 		setMode("trip");
 		setConfirm(null);
 		clearShareParam();
+	}
+
+	function toggleDelivered(index: number) {
+		// un viaje recibido no debe tocar las entregas del viaje activo ajeno
+		if (isPreview) return;
+		const next = delivered.includes(index)
+			? delivered.filter((i) => i !== index)
+			: [...delivered, index];
+		setDelivered(next);
+		saveDeliveredStops(next);
 	}
 
 	function createTrip() {
@@ -101,6 +135,7 @@ export function useTripLifecycle(r: string | undefined) {
 			action: () => {
 				clearActiveTrip();
 				dispatch({ type: "reset" });
+				setDelivered([]);
 				setMode("edit");
 				setConfirm(null);
 				clearShareParam();
@@ -134,6 +169,8 @@ export function useTripLifecycle(r: string | undefined) {
 		history,
 		startHistory,
 		confirm,
+		delivered,
+		toggleDelivered,
 		createTrip,
 		saveTrip,
 		endTrip,

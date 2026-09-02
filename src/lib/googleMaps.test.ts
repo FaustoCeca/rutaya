@@ -1,5 +1,5 @@
 import type { Stop } from "@/hooks/useStops";
-import { buildGoogleMapsLegs } from "./googleMaps";
+import { buildGoogleMapsLegs, stopNavUrl } from "./googleMaps";
 
 function makeStops(count: number): Stop[] {
 	return Array.from({ length: count }, (_, i) => ({
@@ -9,6 +9,20 @@ function makeStops(count: number): Stop[] {
 		lng: Number((-58.38 - i * 0.01).toFixed(2)),
 	}));
 }
+
+describe("stopNavUrl", () => {
+	it("should link only the destination so Maps navigates from the current location", () => {
+		const [stop] = makeStops(1);
+
+		const params = new URL(stopNavUrl(stop)).searchParams;
+
+		expect(params.get("api")).toBe("1");
+		expect(params.get("destination")).toBe("-34.6,-58.38");
+		expect(params.get("travelmode")).toBe("driving");
+		expect(params.has("origin")).toBe(false);
+		expect(params.has("waypoints")).toBe(false);
+	});
+});
 
 describe("buildGoogleMapsLegs", () => {
 	it("should return no legs with fewer than 2 stops", () => {

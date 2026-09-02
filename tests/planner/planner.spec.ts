@@ -111,6 +111,11 @@ test.describe("Planner", () => {
 			await expect(page.getByText("Viaje recibido")).toBeVisible();
 			await planner.verifySummary("2 paradas · 10 min · 3 km");
 
+			// un viaje recibido no expone la UI de entregas
+			await expect(page.getByText(/Entregadas/)).toBeHidden();
+			await expect(page.getByRole("checkbox")).toHaveCount(0);
+			await expect(planner.nextStopLink).toBeHidden();
+
 			await planner.saveSharedTripButton.click();
 
 			await expect(page.getByText("Viaje en curso")).toBeVisible();
@@ -153,6 +158,83 @@ test.describe("Planner", () => {
 			await planner.recentStart(PLACES.obelisco.label).click();
 
 			await expect(page.getByText(`Salís desde ${PLACES.obelisco.label}`)).toBeVisible();
+		},
+	);
+
+	test(
+		"Marking deliveries updates the progress and the next stop, surviving a reload",
+		{ tag: ["@critical", "@e2e", "@planner", "@PLANNER-E2E-009"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.addStop(PLACES.congreso);
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+
+			// con las duraciones mockeadas uniformes el orden de visita es el de carga
+			await expect(page.getByText("Entregadas 0 de 2")).toBeVisible();
+			await expect(planner.nextStopLink).toContainText(PLACES.caminito.label);
+
+			await planner.deliveredToggle(PLACES.caminito.label).check();
+
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+			await expect(planner.nextStopLink).toContainText(PLACES.congreso.label);
+			// navega solo con destino: Maps arranca desde donde esté el repartidor
+			const href = await planner.nextStopLink.getAttribute("href");
+			expect(href).toContain("destination=");
+			expect(href).not.toContain("origin=");
+
+			await page.reload();
+
+			// la lista se auto-expande en viaje en curso: las marcas siguen ahí
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+			await expect(planner.deliveredToggle(PLACES.caminito.label)).toBeChecked();
+
+			await planner.deliveredToggle(PLACES.caminito.label).uncheck();
+
+			await expect(page.getByText("Entregadas 0 de 2")).toBeVisible();
+			await expect(planner.nextStopLink).toContainText(PLACES.caminito.label);
+		},
+	);
+
+	test(
+		"Delivering every stop suggests ending the trip and a new trip starts clean",
+		{ tag: ["@high", "@e2e", "@planner", "@PLANNER-E2E-010"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+			await expect(page.getByText("Entregadas 0 de 1")).toBeVisible();
+
+			await planner.deliveredToggle(PLACES.caminito.label).check();
+
+			await expect(page.getByText("Entregadas 1 de 1")).toBeVisible();
+			await expect(page.getByText("¡Todas las paradas entregadas!")).toBeVisible();
+			await expect(planner.nextStopLink).toBeHidden();
+
+			await planner.endTripButton.click();
+			await planner.confirmDialog("Terminar viaje");
+
+			// mismo viaje de nuevo (partida rápida evita duplicar el botón del buscador)
+			await planner.recentStart(PLACES.obelisco.label).click();
+			await planner.addStop(PLACES.caminito);
+			await planner.verifySummary("2 paradas · 10 min · 3 km");
+			await planner.createTripButton.click();
+
+			// las entregas del viaje anterior no se heredan
+			await expect(page.getByText("Entregadas 0 de 1")).toBeVisible();
+			await expect(planner.deliveredToggle(PLACES.caminito.label)).not.toBeChecked();
 		},
 	);
 

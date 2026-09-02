@@ -24,6 +24,17 @@ function legUrl(points: Stop[]): string {
 	return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
+// Navegación a una sola parada sin origin: Google Maps arranca desde la
+// ubicación actual del conductor.
+export function stopNavUrl(stop: Stop): string {
+	const params = new URLSearchParams({
+		api: "1",
+		destination: `${stop.lat},${stop.lng}`,
+		travelmode: "driving",
+	});
+	return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
 // Divide la ruta en tramos navegables encadenados: cada tramo arranca en la
 // última parada del anterior. Con ≤11 puntos devuelve un solo tramo (el link
 // clásico de siempre); con el tope de 30 paradas nunca hay más de 3 tramos.
