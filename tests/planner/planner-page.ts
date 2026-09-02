@@ -10,6 +10,9 @@ export class PlannerPage extends BasePage {
 	readonly saveSharedTripButton: Locator;
 	readonly roundtripToggle: Locator;
 	readonly nextStopLink: Locator;
+	readonly modifyTripButton: Locator;
+	readonly saveChangesButton: Locator;
+	readonly discardChangesButton: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -20,6 +23,10 @@ export class PlannerPage extends BasePage {
 		this.saveSharedTripButton = page.getByRole("button", { name: "Guardar como mi viaje" });
 		this.roundtripToggle = page.getByRole("checkbox");
 		this.nextStopLink = page.getByRole("link", { name: /Ir a la próxima parada/ });
+		// .first(): al abrirse el diálogo de confirmación aparece un homónimo
+		this.modifyTripButton = page.getByRole("button", { name: "Modificar viaje" }).first();
+		this.saveChangesButton = page.getByRole("button", { name: "Guardar cambios" });
+		this.discardChangesButton = page.getByRole("button", { name: "Descartar cambios" });
 	}
 
 	// mocks de red + flags de primera visita; llamar antes de goto()
@@ -70,5 +77,10 @@ export class PlannerPage extends BasePage {
 	// checkbox de entrega de la fila de una parada (solo en viaje en curso)
 	deliveredToggle(label: string): Locator {
 		return this.stopItem(label).getByRole("checkbox");
+	}
+
+	// borra una parada de la lista (solo en modo edición, panel expandido)
+	async removeStop(label: string): Promise<void> {
+		await this.page.getByRole("button", { name: `Eliminar ${label}` }).click();
 	}
 }

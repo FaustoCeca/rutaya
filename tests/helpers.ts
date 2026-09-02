@@ -38,6 +38,14 @@ export const PLACES = {
 		lat: -34.6098,
 		lng: -58.3925,
 	},
+	retiro: {
+		query: "retiro",
+		name: "Retiro",
+		city: "Buenos Aires",
+		label: "Retiro, Buenos Aires",
+		lat: -34.5915,
+		lng: -58.3747,
+	},
 } satisfies Record<string, FixturePlace>;
 
 // cada tramo mockeado de OSRM dura 10 min y mide 3 km: con 2 paradas el

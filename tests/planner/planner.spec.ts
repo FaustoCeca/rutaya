@@ -239,6 +239,110 @@ test.describe("Planner", () => {
 	);
 
 	test(
+		"Modifying a trip preserves the delivered marks and survives a reload",
+		{ tag: ["@critical", "@e2e", "@planner", "@PLANNER-E2E-011"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.addStop(PLACES.congreso);
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+			// se marca la última a propósito: al borrar una anterior su índice cambia
+			await planner.deliveredToggle(PLACES.congreso.label).check();
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+
+			await planner.modifyTripButton.click();
+			await planner.confirmDialog("Modificar viaje");
+
+			await expect(page.getByText("Estás modificando tu viaje en curso")).toBeVisible();
+			await expect(planner.searchInput).toBeVisible();
+
+			await planner.removeStop(PLACES.caminito.label);
+			await planner.addStop(PLACES.retiro);
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await planner.saveChangesButton.click();
+
+			await expect(page.getByText("Viaje en curso")).toBeVisible();
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+			await expect(planner.deliveredToggle(PLACES.congreso.label)).toBeChecked();
+			await expect(planner.nextStopLink).toContainText(PLACES.retiro.label);
+			await expect(planner.searchInput).toBeHidden();
+
+			await page.reload();
+
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+			await expect(planner.deliveredToggle(PLACES.congreso.label)).toBeChecked();
+		},
+	);
+
+	test(
+		"Discarding the changes restores the locked trip untouched",
+		{ tag: ["@high", "@e2e", "@planner", "@PLANNER-E2E-012"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.addStop(PLACES.congreso);
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+			await planner.deliveredToggle(PLACES.caminito.label).check();
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+
+			await planner.modifyTripButton.click();
+			await planner.confirmDialog("Modificar viaje");
+			await planner.removeStop(PLACES.congreso.label);
+			await planner.verifySummary("2 paradas · 10 min · 3 km");
+
+			await planner.discardChangesButton.click();
+			await planner.confirmDialog("Descartar");
+
+			await expect(page.getByText("Viaje en curso")).toBeVisible();
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+			await expect(planner.deliveredToggle(PLACES.caminito.label)).toBeChecked();
+			await expect(page.getByText("Estás modificando tu viaje en curso")).toBeHidden();
+		},
+	);
+
+	test(
+		"Reloading mid-edit restores the confirmed trip untouched",
+		{ tag: ["@medium", "@e2e", "@planner", "@PLANNER-E2E-013"] },
+		async ({ page }) => {
+			const planner = new PlannerPage(page);
+			await planner.setup();
+			await planner.goto();
+			await planner.addStop(PLACES.obelisco);
+			await planner.addStop(PLACES.caminito);
+			await planner.addStop(PLACES.congreso);
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await planner.expandSheet();
+			await planner.markOrigin(PLACES.obelisco.label);
+			await planner.createTripButton.click();
+			await planner.deliveredToggle(PLACES.caminito.label).check();
+
+			await planner.modifyTripButton.click();
+			await planner.confirmDialog("Modificar viaje");
+			await planner.removeStop(PLACES.congreso.label);
+
+			await page.reload();
+
+			// el viaje guardado no se tocó: vuelve bloqueado con sus 3 paradas y marcas
+			await expect(page.getByText("Viaje en curso")).toBeVisible();
+			await planner.verifySummary("3 paradas · 20 min · 6 km");
+			await expect(page.getByText("Entregadas 1 de 2")).toBeVisible();
+		},
+	);
+
+	test(
 		"Welcome tour shows on the first visit and can be dismissed",
 		{ tag: ["@medium", "@e2e", "@planner", "@PLANNER-E2E-007"] },
 		async ({ page }) => {

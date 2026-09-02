@@ -12,6 +12,9 @@ interface SheetActionsProps {
 	allDelivered: boolean;
 	// origen del viaje, solo en roundtrip: al completar se ofrece volver
 	originStop: Stop | undefined;
+	// se está modificando un viaje en curso: el CTA de edición guarda en vez de crear
+	isModifying: boolean;
+	onModify: () => void;
 	onShare: () => void;
 	onCreate: () => void;
 	onSave: () => void;
@@ -27,6 +30,8 @@ export function SheetActions({
 	nextStop,
 	allDelivered,
 	originStop,
+	isModifying,
+	onModify,
 	onShare,
 	onCreate,
 	onSave,
@@ -55,7 +60,7 @@ export function SheetActions({
 					disabled={!canCreate}
 					className="w-full rounded-full bg-emerald-600 py-2.5 font-semibold text-sm text-white disabled:opacity-40"
 				>
-					Crear viaje
+					{isModifying ? "Guardar cambios" : "Crear viaje"}
 				</button>
 			</div>
 		);
@@ -161,13 +166,22 @@ export function SheetActions({
 					Guardar como mi viaje
 				</button>
 			) : (
-				<button
-					type="button"
-					onClick={onEnd}
-					className="w-full rounded-full border border-red-200 py-2 font-semibold text-red-600 text-sm"
-				>
-					Terminar viaje
-				</button>
+				<div className="flex gap-2">
+					<button
+						type="button"
+						onClick={onModify}
+						className="flex-1 rounded-full border-2 border-emerald-600 py-2 font-semibold text-emerald-700 text-sm"
+					>
+						Modificar viaje
+					</button>
+					<button
+						type="button"
+						onClick={onEnd}
+						className="flex-1 rounded-full border border-red-200 py-2 font-semibold text-red-600 text-sm"
+					>
+						Terminar viaje
+					</button>
+				</div>
 			)}
 		</div>
 	);
