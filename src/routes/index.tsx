@@ -170,6 +170,9 @@ function PlannerPage() {
 				startHistory={startHistory}
 				delivered={lifecycle.delivered}
 				onToggleDelivered={lifecycle.toggleDelivered}
+				isModifying={lifecycle.isModifying}
+				onModifyTrip={lifecycle.modifyTrip}
+				onDiscardChanges={lifecycle.discardChanges}
 				onShare={() => void handleShare()}
 				onRetry={() => void tripQuery.refetch()}
 				onToggleRoundtrip={() => dispatch({ type: "toggleRoundtrip" })}

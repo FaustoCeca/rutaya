@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { SheetActions } from "./SheetActions";
 
 const NEXT_STOP = { id: "b", label: "Caminito, La Boca", lat: -34.63, lng: -58.36 };
 
 function renderActions(overrides: Partial<Parameters<typeof SheetActions>[0]> = {}) {
+	const onModify = vi.fn();
 	render(
 		<SheetActions
 			mode="trip"
@@ -13,6 +15,8 @@ function renderActions(overrides: Partial<Parameters<typeof SheetActions>[0]> = 
 			nextStop={undefined}
 			allDelivered={false}
 			originStop={undefined}
+			isModifying={false}
+			onModify={onModify}
 			onShare={vi.fn()}
 			onCreate={vi.fn()}
 			onSave={vi.fn()}
@@ -21,6 +25,7 @@ function renderActions(overrides: Partial<Parameters<typeof SheetActions>[0]> = 
 			{...overrides}
 		/>,
 	);
+	return { onModify };
 }
 
 describe("SheetActions", () => {
@@ -64,5 +69,36 @@ describe("SheetActions", () => {
 
 		expect(screen.queryByText("Ir a la próxima parada")).not.toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Guardar como mi viaje" })).toBeInTheDocument();
+	});
+
+	it("should offer to modify the active trip but never a received one", async () => {
+		// Given
+		const user = userEvent.setup();
+		const { onModify } = renderActions();
+
+		// When
+		await user.click(screen.getByRole("button", { name: "Modificar viaje" }));
+
+		// Then
+		expect(onModify).toHaveBeenCalledTimes(1);
+	});
+
+	it("should hide the modify button on a received trip", () => {
+		renderActions({ isPreview: true });
+
+		expect(screen.queryByRole("button", { name: "Modificar viaje" })).not.toBeInTheDocument();
+	});
+
+	it("should relabel the edit CTA to save while modifying a trip", () => {
+		renderActions({ mode: "edit", isModifying: true });
+
+		expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Crear viaje" })).not.toBeInTheDocument();
+	});
+
+	it("should keep the create CTA in a plain edit session", () => {
+		renderActions({ mode: "edit" });
+
+		expect(screen.getByRole("button", { name: "Crear viaje" })).toBeInTheDocument();
 	});
 });

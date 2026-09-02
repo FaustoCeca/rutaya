@@ -5,6 +5,7 @@ import { formatDistance, formatDuration } from "@/lib/format";
 import type { MapsLeg } from "@/lib/googleMaps";
 import type { TripResult } from "@/lib/osrm";
 import type { StoredStart, StoredTrip } from "@/lib/tripStorage";
+import { ModifyingBanner } from "./ModifyingBanner";
 import { RouteSummary } from "./RouteSummary";
 import { SheetActions } from "./SheetActions";
 import { StartPointPicker } from "./StartPointPicker";
@@ -29,6 +30,10 @@ interface StopsSheetProps {
 	// índices de paradas entregadas dentro de stops (nunca el origen)
 	delivered: number[];
 	onToggleDelivered: (index: number) => void;
+	// sesión de modificación de un viaje en curso (mode vuelve a "edit")
+	isModifying: boolean;
+	onModifyTrip: () => void;
+	onDiscardChanges: () => void;
 	onShare: () => void;
 	onRetry: () => void;
 	onToggleRoundtrip: () => void;
@@ -112,6 +117,7 @@ export function StopsSheet(props: StopsSheetProps) {
 					)}
 				</p>
 			)}
+			{props.isModifying && <ModifyingBanner onDiscard={props.onDiscardChanges} />}
 			<RouteSummary
 				stopCount={stops.length}
 				trip={trip}
@@ -135,6 +141,8 @@ export function StopsSheet(props: StopsSheetProps) {
 				nextStop={nextStop}
 				allDelivered={allDelivered}
 				originStop={roundtrip ? stops[0] : undefined}
+				isModifying={props.isModifying}
+				onModify={props.onModifyTrip}
 				onShare={props.onShare}
 				onCreate={props.onCreateTrip}
 				onSave={props.onSaveTrip}

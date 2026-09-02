@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { deliveredIdsToIndices, deliveredIndicesToIds } from "@/lib/deliveredMarks";
 import { sameRoute } from "@/lib/share";
 import {
 	clearActiveTrip,
@@ -34,6 +35,9 @@ export function useTripLifecycle(r: string | undefined) {
 	const [startHistory, setStartHistory] = useState<StoredStart[]>(loadStartHistory);
 	const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 	const [delivered, setDelivered] = useState<number[]>(initial.delivered);
+	// ids de paradas entregadas preservados mientras se modifica el viaje;
+	// null = no se está modificando
+	const [pendingDeliveredIds, setPendingDeliveredIds] = useState<string[] | null>(null);
 
 	// saca ?r= de la URL para que un reload no resucite el viaje del enlace
 	function clearShareParam() {
@@ -47,7 +51,14 @@ export function useTripLifecycle(r: string | undefined) {
 		if (origin) pushStartHistory({ lat: origin.lat, lng: origin.lng, label: origin.label });
 		setHistory(loadTripHistory());
 		setStartHistory(loadStartHistory());
-		setDelivered([]);
+		// al guardar una modificación, las entregas preservadas por id vuelven
+		// como índices del set nuevo; en cualquier otro camino quedan en cero
+		const nextDelivered = pendingDeliveredIds
+			? deliveredIdsToIndices(routeState.stops, pendingDeliveredIds)
+			: [];
+		setDelivered(nextDelivered);
+		if (nextDelivered.length > 0) saveDeliveredStops(nextDelivered);
+		setPendingDeliveredIds(null);
 		setIsPreview(false);
 		setMode("trip");
 		setConfirm(null);
@@ -79,6 +90,37 @@ export function useTripLifecycle(r: string | undefined) {
 			return;
 		}
 		activate(state);
+	}
+
+	function modifyTrip() {
+		setConfirm({
+			message: "¿Modificar el viaje? Vas a poder agregar o quitar paradas y volver a confirmarlo.",
+			confirmLabel: "Modificar viaje",
+			action: () => {
+				// las entregas se preservan por id: los índices se rompen al editar
+				setPendingDeliveredIds(deliveredIndicesToIds(state.stops, delivered));
+				setDelivered([]);
+				setMode("edit");
+				setConfirm(null);
+			},
+		});
+	}
+
+	function discardChanges() {
+		setConfirm({
+			message: "¿Descartar los cambios? El viaje vuelve a como estaba.",
+			confirmLabel: "Descartar",
+			action: () => {
+				const active = loadActiveTrip();
+				if (active) {
+					dispatch({ type: "hydrate", state: active.state });
+					setDelivered(active.delivered);
+					setMode("trip");
+				}
+				setPendingDeliveredIds(null);
+				setConfirm(null);
+			},
+		});
 	}
 
 	function endTrip() {
@@ -124,6 +166,9 @@ export function useTripLifecycle(r: string | undefined) {
 		confirm,
 		delivered,
 		toggleDelivered,
+		isModifying: pendingDeliveredIds !== null,
+		modifyTrip,
+		discardChanges,
 		createTrip,
 		saveTrip,
 		endTrip,
