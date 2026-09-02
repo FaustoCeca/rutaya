@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Stop } from "@/hooks/useStops";
 import type { PlannerMode } from "@/hooks/useTripLifecycle";
 import { formatDistance, formatDuration } from "@/lib/format";
@@ -26,6 +26,9 @@ interface StopsSheetProps {
 	mapsLegs: MapsLeg[];
 	history: StoredTrip[];
 	startHistory: StoredStart[];
+	// índices de paradas entregadas dentro de stops (nunca el origen)
+	delivered: number[];
+	onToggleDelivered: (index: number) => void;
 	onShare: () => void;
 	onRetry: () => void;
 	onToggleRoundtrip: () => void;
@@ -41,16 +44,32 @@ interface StopsSheetProps {
 }
 
 export function StopsSheet(props: StopsSheetProps) {
-	const { mode, isPreview, stops, roundtrip, hasOrigin, trip, order, history } = props;
+	const { mode, isPreview, stops, roundtrip, hasOrigin, trip, order, history, delivered } = props;
 	const [expanded, setExpanded] = useState(false);
 	const locked = mode === "trip";
 
+	// en modo viaje la lista es el tablero del reparto: arranca visible
+	useEffect(() => {
+		if (locked) setExpanded(true);
+	}, [locked]);
+
 	const orderedStops = stops
-		.map((stop, i) => ({ stop, pos: order?.[i] ?? i }))
+		.map((stop, i) => ({ stop, index: i, pos: order?.[i] ?? i }))
 		.sort((a, b) => a.pos - b.pos);
 	const legs = order && trip ? trip.legs : undefined;
 	const returnLeg = roundtrip && legs ? legs[legs.length - 1] : undefined;
 	const hasExpandedContent = stops.length > 0 || (!locked && history.length > 0);
+
+	const marking = locked && !isPreview;
+	// el origen no se entrega
+	const deliverableCount = stops.length - 1;
+	// próxima sin entregar en orden de visita; sin order (OSRM pendiente/falló)
+	// no hay próxima: el fallback pos=índice es orden de carga, no de visita
+	const nextStop =
+		marking && order
+			? orderedStops.find((x) => x.index !== 0 && !delivered.includes(x.index))?.stop
+			: undefined;
+	const allDelivered = marking && deliverableCount > 0 && delivered.length >= deliverableCount;
 
 	return (
 		<section className="absolute inset-x-0 bottom-0 z-[1100] rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.15)]">
@@ -86,6 +105,11 @@ export function StopsSheet(props: StopsSheetProps) {
 					<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 font-medium text-emerald-700 text-xs">
 						🔒 {isPreview ? "Viaje recibido" : "Viaje en curso"}
 					</span>
+					{marking && (
+						<span className="ml-2 font-medium text-gray-600 text-xs">
+							Entregadas {delivered.length} de {deliverableCount}
+						</span>
+					)}
 				</p>
 			)}
 			<RouteSummary
@@ -108,6 +132,9 @@ export function StopsSheet(props: StopsSheetProps) {
 				isPreview={isPreview}
 				canCreate={!!order && hasOrigin}
 				mapsLegs={props.mapsLegs}
+				nextStop={nextStop}
+				allDelivered={allDelivered}
+				originStop={roundtrip ? stops[0] : undefined}
 				onShare={props.onShare}
 				onCreate={props.onCreateTrip}
 				onSave={props.onSaveTrip}
@@ -118,7 +145,7 @@ export function StopsSheet(props: StopsSheetProps) {
 				<div className="border-gray-100 border-t">
 					{stops.length > 0 && (
 						<ul className="max-h-[45dvh] overflow-y-auto py-1">
-							{orderedStops.map(({ stop, pos }) => (
+							{orderedStops.map(({ stop, index, pos }) => (
 								<StopListItem
 									key={stop.id}
 									stop={stop}
@@ -126,6 +153,9 @@ export function StopsSheet(props: StopsSheetProps) {
 									isOrigin={pos === 0 && hasOrigin}
 									leg={pos > 0 ? legs?.[pos - 1] : undefined}
 									readonly={locked}
+									deliverable={marking && index !== 0}
+									delivered={delivered.includes(index)}
+									onToggleDelivered={() => props.onToggleDelivered(index)}
 									onRemove={() => props.onRemove(stop.id)}
 									onMakeOrigin={() => props.onMakeOrigin(stop.id)}
 								/>

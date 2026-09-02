@@ -21,14 +21,20 @@ export interface StoredStart {
 export interface StoredTrip {
 	state: RouteState;
 	createdAt: number;
+	// índices de paradas entregadas dentro de state.stops; siempre [] en el historial
+	delivered: number[];
 }
 
 function parseStored(raw: unknown): StoredTrip | null {
 	if (typeof raw !== "object" || raw === null) return null;
-	const { p, t } = raw as { p?: unknown; t?: unknown };
+	const { p, t, d } = raw as { p?: unknown; t?: unknown; d?: unknown };
 	const state = fromRoutePayload(p);
 	if (!state || typeof t !== "number") return null;
-	return { state, createdAt: t };
+	// el origen (índice 0) nunca se entrega; lo demás fuera de rango es basura
+	const delivered = Array.isArray(d)
+		? d.filter((i): i is number => Number.isInteger(i) && i >= 1 && i < state.stops.length)
+		: [];
+	return { state, createdAt: t, delivered };
 }
 
 export function loadActiveTrip(): StoredTrip | null {
@@ -46,6 +52,20 @@ export function saveActiveTrip(state: RouteState): void {
 		localStorage.setItem(ACTIVE_KEY, JSON.stringify({ p: toRoutePayload(state), t: Date.now() }));
 	} catch {
 		// sin storage la app sigue funcionando; solo no persiste entre sesiones
+	}
+}
+
+// Actualiza solo las entregas del viaje activo, preservando ruta y fecha.
+// Sin viaje activo no hace nada: las entregas no existen por sí solas.
+export function saveDeliveredStops(indices: number[]): void {
+	try {
+		const raw = localStorage.getItem(ACTIVE_KEY);
+		if (!raw) return;
+		const record = JSON.parse(raw);
+		if (typeof record !== "object" || record === null) return;
+		localStorage.setItem(ACTIVE_KEY, JSON.stringify({ ...record, d: indices }));
+	} catch {
+		// sin storage la app sigue; las entregas viven solo en memoria
 	}
 }
 

@@ -10,6 +10,10 @@ interface StopListItemProps {
 	leg: TripLeg | undefined;
 	// viaje confirmado: la fila se muestra sin acciones
 	readonly: boolean;
+	// en viaje activo la parada se puede marcar entregada (el origen y el preview no)
+	deliverable: boolean;
+	delivered: boolean;
+	onToggleDelivered: () => void;
 	onRemove: () => void;
 	onMakeOrigin: () => void;
 }
@@ -20,28 +24,59 @@ export function StopListItem({
 	isOrigin,
 	leg,
 	readonly,
+	deliverable,
+	delivered,
+	onToggleDelivered,
 	onRemove,
 	onMakeOrigin,
 }: StopListItemProps) {
+	const badge = (
+		<span
+			className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-bold text-sm text-white ${isOrigin ? "bg-emerald-600" : "bg-blue-600"}`}
+		>
+			{visitNumber}
+		</span>
+	);
+	const details = (
+		<div className="min-w-0 flex-1">
+			<p
+				className={`truncate text-sm ${delivered ? "text-gray-400 line-through" : "text-gray-900"}`}
+			>
+				{stop.label}
+			</p>
+			{isOrigin ? (
+				<p className="font-medium text-emerald-700 text-xs">Origen</p>
+			) : (
+				leg && (
+					<p className="text-gray-500 text-xs">
+						+{formatDuration(leg.duration)} · {formatDistance(leg.distance)}
+					</p>
+				)
+			)}
+		</div>
+	);
+	if (deliverable) {
+		// toda la fila es el target del toque: marca/desmarca la entrega
+		return (
+			<li className="px-4 py-2.5">
+				<label className="flex cursor-pointer items-center gap-3">
+					{badge}
+					{details}
+					<input
+						type="checkbox"
+						checked={delivered}
+						onChange={onToggleDelivered}
+						aria-label={`Entregada: ${stop.label}`}
+						className="h-6 w-6 shrink-0 appearance-none rounded-full border-2 border-gray-300 text-center font-bold text-sm text-white leading-5 checked:border-emerald-600 checked:bg-emerald-600 checked:before:block checked:before:content-['✓']"
+					/>
+				</label>
+			</li>
+		);
+	}
 	return (
 		<li className="flex items-center gap-3 px-4 py-2.5">
-			<span
-				className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-bold text-sm text-white ${isOrigin ? "bg-emerald-600" : "bg-blue-600"}`}
-			>
-				{visitNumber}
-			</span>
-			<div className="min-w-0 flex-1">
-				<p className="truncate text-gray-900 text-sm">{stop.label}</p>
-				{isOrigin ? (
-					<p className="font-medium text-emerald-700 text-xs">Origen</p>
-				) : (
-					leg && (
-						<p className="text-gray-500 text-xs">
-							+{formatDuration(leg.duration)} · {formatDistance(leg.distance)}
-						</p>
-					)
-				)}
-			</div>
+			{badge}
+			{details}
 			{!readonly && !isOrigin && (
 				<button
 					type="button"

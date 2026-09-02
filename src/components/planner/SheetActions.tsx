@@ -1,11 +1,17 @@
+import type { Stop } from "@/hooks/useStops";
 import type { PlannerMode } from "@/hooks/useTripLifecycle";
-import type { MapsLeg } from "@/lib/googleMaps";
+import { type MapsLeg, stopNavUrl } from "@/lib/googleMaps";
 
 interface SheetActionsProps {
 	mode: PlannerMode;
 	isPreview: boolean;
 	canCreate: boolean;
 	mapsLegs: MapsLeg[];
+	// próxima parada sin entregar en orden de visita; undefined sin orden o al completar
+	nextStop: Stop | undefined;
+	allDelivered: boolean;
+	// origen del viaje, solo en roundtrip: al completar se ofrece volver
+	originStop: Stop | undefined;
 	onShare: () => void;
 	onCreate: () => void;
 	onSave: () => void;
@@ -18,6 +24,9 @@ export function SheetActions({
 	isPreview,
 	canCreate,
 	mapsLegs,
+	nextStop,
+	allDelivered,
+	originStop,
 	onShare,
 	onCreate,
 	onSave,
@@ -53,11 +62,55 @@ export function SheetActions({
 	}
 	return (
 		<div className="space-y-2 px-4 pb-3">
+			{!isPreview && allDelivered && (
+				<p className="rounded-2xl bg-emerald-50 px-4 py-3 text-center font-medium text-emerald-700 text-sm">
+					¡Todas las paradas entregadas! Podés terminar el viaje.
+				</p>
+			)}
+			{!isPreview && allDelivered && originStop && (
+				<a
+					href={stopNavUrl(originStop)}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="block w-full rounded-full bg-emerald-600 py-2.5 text-center font-semibold text-sm text-white"
+				>
+					Volver al origen
+					<span className="block truncate px-4 font-normal text-emerald-100 text-xs">
+						{originStop.label}
+					</span>
+				</a>
+			)}
+			{!isPreview && !allDelivered && nextStop && (
+				<a
+					href={stopNavUrl(nextStop)}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="block w-full rounded-full bg-emerald-600 py-2.5 text-center font-semibold text-sm text-white"
+				>
+					Ir a la próxima parada
+					<span className="block truncate px-4 font-normal text-emerald-100 text-xs">
+						{nextStop.label}
+					</span>
+				</a>
+			)}
+			{!isPreview && !allDelivered && !nextStop && (
+				<button
+					type="button"
+					disabled
+					className="w-full rounded-full bg-emerald-600 py-2.5 font-semibold text-sm text-white opacity-40"
+				>
+					Ir a la próxima parada
+				</button>
+			)}
 			<div className="flex gap-2">
 				<button
 					type="button"
 					onClick={onShare}
-					className="flex-1 rounded-full bg-emerald-600 py-2.5 font-semibold text-sm text-white"
+					className={
+						isPreview
+							? "flex-1 rounded-full bg-emerald-600 py-2.5 font-semibold text-sm text-white"
+							: "flex-1 rounded-full border-2 border-emerald-600 py-2 font-semibold text-emerald-700 text-sm"
+					}
 				>
 					Compartir
 				</button>
